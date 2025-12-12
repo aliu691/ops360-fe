@@ -5,7 +5,6 @@ export default function Sidebar() {
   const location = useLocation();
 
   const menu = [
-    { name: "Upload Meetings", icon: UploadCloud, path: "/upload" },
     { name: "Meetings List", icon: ListOrdered, path: "/meetings" },
     { name: "KPI Dashboard", icon: LayoutGrid, path: "/kpi" },
     { name: "Settings", icon: Settings, path: "/settings" },
