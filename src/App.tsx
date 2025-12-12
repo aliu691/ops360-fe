@@ -1,20 +1,20 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
-import Upload from "./pages/Upload";
 import Meetings from "./pages/Meetings";
-import Dashboard from "./pages/Dashboard";
+import KpiDashboard from "./pages/Dashboard";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<Navigate to="/upload" replace />} />
-          <Route path="/upload" element={<Upload />} />
+          <Route path="/" element={<Navigate to="/kpi" replace />} />
           <Route path="/meetings" element={<Meetings />} />
-          <Route path="/kpi" element={<Dashboard />} />
+          <Route path="/kpi" element={<KpiDashboard />} />
         </Routes>
       </Layout>
+      <Toaster position="top-center" />
     </BrowserRouter>
   );
 }
