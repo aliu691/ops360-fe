@@ -1,6 +1,8 @@
 // src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
 import apiClient from "../config/apiClient";
+import { API_ENDPOINTS } from "../config/api";
+
 import {
   ChevronRight,
   ChevronDown,
@@ -8,6 +10,8 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+
+import { formatMonthLabel } from "../utils/dateUtils";
 
 /* ---------------------------------------------
    TYPES
@@ -41,6 +45,13 @@ interface KPIWeeklySnapshot {
     roleOnlyCount?: number;
   };
   meetingFindings?: MeetingFinding[];
+}
+
+interface WeekOption {
+  week: number;
+  label: string;
+  startDate: string;
+  endDate: string;
 }
 
 /* ---------------------------------------------
@@ -97,24 +108,52 @@ function statusIcon(status?: FindingStatus) {
 
 export default function Dashboard() {
   const [selectedRep, setSelectedRep] = useState<string>("Ben");
-  const [selectedMonth, setSelectedMonth] = useState<string>("All Months");
-  const [selectedWeek, setSelectedWeek] = useState<string>("All Weeks");
 
   const [kpi, setKpi] = useState<KPIWeeklySnapshot | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [openMeetingId, setOpenMeetingId] = useState<number | null>(null);
 
+  const [months, setMonths] = useState<string[]>([]);
+  const [weeks, setWeeks] = useState<WeekOption[]>([]);
+
+  const [selectedMonth, setSelectedMonth] = useState<string | undefined>();
+  const [selectedWeek, setSelectedWeek] = useState<number | undefined>();
+
+  useEffect(() => {
+    apiClient
+      .get(API_ENDPOINTS.getAvailableMonths())
+      .then((res) => setMonths(res.data?.items ?? []))
+      .catch(() => setMonths([]));
+  }, []);
+
+  useEffect(() => {
+    setWeeks([]);
+    setSelectedWeek(undefined);
+
+    if (!selectedMonth) return;
+
+    apiClient
+      .get(API_ENDPOINTS.getAvailableWeeks(selectedMonth))
+      .then((res) => setWeeks(res.data?.items ?? []))
+      .catch(() => setWeeks([]));
+  }, [selectedMonth]);
+
   /* ---------------------------------------------------
-     FETCH KPI DATA
-  ---------------------------------------------------*/
+   FETCH KPI DATA
+---------------------------------------------------*/
   useEffect(() => {
     if (!selectedRep) return;
 
     setLoading(true);
 
+    const params: Record<string, string | number> = {};
+
+    if (selectedMonth) params.month = selectedMonth;
+    if (selectedWeek !== undefined) params.week = selectedWeek;
+
     apiClient
-      .get(`/kpi/${selectedRep}`)
+      .get(API_ENDPOINTS.getKpi(selectedRep, params))
       .then((res) => {
         const data = res.data ?? {};
         setKpi({
@@ -127,11 +166,11 @@ export default function Dashboard() {
         });
       })
       .catch((err) => {
-        console.error("Dashboard fetch error:", err);
+        console.error("Dashboard KPI fetch error:", err);
         setKpi(null);
       })
       .finally(() => setLoading(false));
-  }, [selectedRep]);
+  }, [selectedRep, selectedMonth, selectedWeek]);
 
   /* ---------------------------------------------------
      WEEKLY FINDINGS MESSAGE
@@ -199,41 +238,32 @@ export default function Dashboard() {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
             />
           </div>
+          <Select
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            options={months}
+            placeholder="All Months"
+            formatLabel={formatMonthLabel}
+          />
 
-          {/* Month Select */}
           <div className="relative">
             <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="
-                appearance-none px-4 py-2 pr-10
-                bg-white border rounded-lg 
-                text-sm shadow-sm cursor-pointer
-                focus:outline-none focus:ring-2 focus:ring-blue-100
-              "
+              value={selectedWeek ?? ""}
+              onChange={(e) =>
+                setSelectedWeek(
+                  e.target.value ? Number(e.target.value) : undefined
+                )
+              }
+              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
             >
-              <option>All Months</option>
+              <option value="">All Weeks</option>
+              {weeks.map((w) => (
+                <option key={w.week} value={w.week}>
+                  {w.label}
+                </option>
+              ))}
             </select>
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          </div>
 
-          {/* Week Select */}
-          <div className="relative">
-            <select
-              value={selectedWeek}
-              onChange={(e) => setSelectedWeek(e.target.value)}
-              className="
-                appearance-none px-4 py-2 pr-10
-                bg-white border rounded-lg 
-                text-sm shadow-sm cursor-pointer
-                focus:outline-none focus:ring-2 focus:ring-blue-100
-              "
-            >
-              <option>All Weeks</option>
-            </select>
             <ChevronDown
               size={16}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
@@ -466,6 +496,40 @@ export default function Dashboard() {
             })}
         </div>
       </div>
+    </div>
+  );
+}
+function Select({
+  value,
+  onChange,
+  options,
+  placeholder,
+  formatLabel,
+}: {
+  value?: string;
+  onChange: (v?: string) => void;
+  options: string[];
+  placeholder?: string;
+  formatLabel?: (v: string) => string;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {formatLabel ? formatLabel(o) : o}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={16}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+      />
     </div>
   );
 }
