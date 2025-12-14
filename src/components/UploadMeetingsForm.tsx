@@ -3,6 +3,13 @@ import { UploadCloud, Info } from "lucide-react";
 import apiClient from "../config/apiClient";
 import { API_ENDPOINTS } from "../config/api";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+
+import {
+  formatMonthLabel,
+  getCurrentMonth,
+  getCurrentWeek,
+} from "../utils/dateUtils";
 
 const reps = ["Ben", "Faith", "John", "Sarah"];
 
@@ -11,6 +18,7 @@ interface WeekOption {
   label: string;
   startDate: string;
   endDate: string;
+  hasData: boolean; // ✅ NEW
 }
 
 export default function UploadMeetingsForm({ onSuccess }: any) {
@@ -20,25 +28,36 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
   const [months, setMonths] = useState<string[]>([]);
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
 
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedWeek, setSelectedWeek] = useState<number | "">("");
 
   const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
 
+  const currentMonth = getCurrentMonth();
+  const currentWeek = getCurrentWeek();
+
   /* --------------------------------
-     LOAD AVAILABLE MONTHS
+     LOAD CALENDAR MONTHS
+     Auto-select current month
   -------------------------------- */
   useEffect(() => {
     apiClient
-      .get(API_ENDPOINTS.getAvailableMonths())
-      .then((res) => setMonths(res.data?.items ?? []))
+      .get(API_ENDPOINTS.getCalendarMonths())
+      .then((res) => {
+        const items = res.data?.items ?? [];
+        setMonths(items);
+
+        if (items.includes(currentMonth)) {
+          setSelectedMonth(currentMonth);
+        }
+      })
       .catch(() => setMonths([]));
   }, []);
 
   /* --------------------------------
-     LOAD WEEKS WHEN MONTH CHANGES
+     LOAD CALENDAR WEEKS
+     ❌ Filter out weeks that already have data
   -------------------------------- */
   useEffect(() => {
     setWeeks([]);
@@ -47,8 +66,22 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
     if (!selectedMonth) return;
 
     apiClient
-      .get(API_ENDPOINTS.getAvailableWeeks(selectedMonth))
-      .then((res) => setWeeks(res.data?.items ?? []))
+      .get(API_ENDPOINTS.getCalendarWeeks(selectedMonth))
+      .then((res) => {
+        const allWeeks: WeekOption[] = res.data?.items ?? [];
+
+        // ✅ REMOVE weeks that already have data
+        const availableWeeks = allWeeks.filter((w) => !w.hasData);
+
+        setWeeks(availableWeeks);
+
+        // ✅ Auto-select current week ONLY if it has no data
+        const match = availableWeeks.find((w) => w.week === currentWeek);
+
+        if (match) {
+          setSelectedWeek(match.week);
+        }
+      })
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
@@ -60,6 +93,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
     if (!rep || !file || !selectedMonth || !selectedWeek) return;
 
     setLoading(true);
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -74,10 +108,19 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      onSuccess(true);
-      setTimeout(() => navigate("/meetings"), 400);
+      // ✅ FIRE TOAST HERE (source of truth)
+      toast.success("Meetings uploaded successfully");
+
+      // ✅ close modal / notify parent ONCE
+      onSuccess?.(true);
+
+      // ✅ allow toast to render before navigation
+      setTimeout(() => {
+        navigate("/meetings");
+      }, 400);
     } catch (err) {
       console.error("Upload error:", err);
+      toast.error("Upload failed");
     } finally {
       setLoading(false);
     }
@@ -117,7 +160,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
           <option value="">Select month...</option>
           {months.map((m) => (
             <option key={m} value={m}>
-              {m}
+              {formatMonthLabel(m)}
             </option>
           ))}
         </select>
@@ -137,11 +180,17 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
           className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
         >
           <option value="">Select week...</option>
-          {weeks.map((w) => (
-            <option key={w.week} value={w.week}>
-              {w.label}
-            </option>
-          ))}
+
+          {weeks.map((w) => {
+            const isFuture =
+              selectedMonth === currentMonth && w.week > currentWeek;
+
+            return (
+              <option key={w.week} value={w.week} disabled={isFuture}>
+                {w.label} {isFuture ? "(Upcoming)" : ""}
+              </option>
+            );
+          })}
         </select>
       </div>
 
@@ -177,7 +226,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
       {/* Info */}
       <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-3 py-3 text-sm text-gray-600">
         <Info size={18} />
-        Uploads are evaluated based on the selected reporting week.
+        Uploads are assigned to the selected reporting week.
       </div>
 
       {/* Actions */}

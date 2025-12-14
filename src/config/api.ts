@@ -16,16 +16,27 @@ export const API_ENDPOINTS = {
       repName
     )}&month=${encodeURIComponent(month)}&week=${week}`,
 
-  getMeetings: (repName?: string, page?: number, limit?: number) => {
+  getMeetings: (
+    repName?: string,
+    page?: number,
+    limit?: number,
+    filters?: {
+      month?: string;
+      week?: number;
+    }
+  ) => {
     const params = new URLSearchParams();
 
     if (repName) params.append("repName", repName);
     if (page) params.append("page", String(page));
     if (limit) params.append("limit", String(limit));
 
-    return `${BASE_URL}/meetings${
-      params.toString() ? `?${params.toString()}` : ""
-    }`;
+    // ✅ NEW: optional filters
+    if (filters?.month) params.append("month", filters.month);
+    if (filters?.week !== undefined)
+      params.append("week", String(filters.week));
+
+    return `${BASE_URL}/meetings?${params.toString()}`;
   },
 
   getKpi: (
@@ -49,6 +60,10 @@ export const API_ENDPOINTS = {
     `${BASE_URL}/filters/weeks?month=${encodeURIComponent(month)}`,
 
   getAvailableQuarters: () => `${BASE_URL}/filters/quarters`,
+
+  getCalendarMonths: () => `${BASE_URL}/calendar/months`,
+  getCalendarWeeks: (month: string) =>
+    `${BASE_URL}/calendar/weeks?month=${encodeURIComponent(month)}`,
 };
 
 export default BASE_URL;

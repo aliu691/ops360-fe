@@ -5,6 +5,11 @@ import MeetingDetailsPanel from "../components/MeetingDetailsPanel";
 import Modal from "../components/Modal";
 import UploadMeetingsForm from "../components/UploadMeetingsForm";
 import { API_ENDPOINTS } from "../config/api";
+import {
+  formatMonthLabel,
+  getCurrentMonth,
+  getCurrentWeek,
+} from "../utils/dateUtils";
 
 const reps = ["Ben", "Faith", "John", "Sarah"];
 
@@ -15,27 +20,80 @@ export default function Meetings() {
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const [query, setQuery] = useState("");
-  const [repFilter, setRepFilter] = useState(""); // ⭐ NEW: Selected Rep Filter
+  const [repFilter, setRepFilter] = useState("");
 
-  // Pagination state
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
   const [loading, setLoading] = useState(true);
 
-  /* -------------------------------------------------------
-     FETCH PAGINATED MEETINGS WITH REP FILTER
-  -------------------------------------------------------*/
+  const [months, setMonths] = useState<string[]>([]);
+  const [weeks, setWeeks] = useState<any[]>([]);
+
+  const [selectedMonth, setSelectedMonth] = useState<string | undefined>();
+  const [selectedWeek, setSelectedWeek] = useState<number | undefined>();
+
+  const currentMonth = getCurrentMonth();
+  const currentWeek = getCurrentWeek();
+
+  /* ----------------------------------------
+     LOAD MONTHS (auto-select current)
+  ---------------------------------------- */
+  useEffect(() => {
+    apiClient
+      .get(API_ENDPOINTS.getAvailableMonths())
+      .then((res) => {
+        const items = res.data?.items ?? [];
+        setMonths(items);
+
+        if (items.includes(currentMonth)) {
+          setSelectedMonth(currentMonth);
+        }
+      })
+      .catch(() => setMonths([]));
+  }, []);
+
+  /* ----------------------------------------
+     LOAD WEEKS WHEN MONTH CHANGES
+     (auto-select current week)
+  ---------------------------------------- */
+  useEffect(() => {
+    setWeeks([]);
+    setSelectedWeek(undefined);
+
+    if (!selectedMonth) return;
+
+    apiClient
+      .get(API_ENDPOINTS.getAvailableWeeks(selectedMonth))
+      .then((res) => {
+        const items = res.data?.items ?? [];
+        setWeeks(items);
+
+        const match = items.find((w: any) => w.week === currentWeek);
+        if (match) {
+          setSelectedWeek(match.week);
+        }
+      })
+      .catch(() => setWeeks([]));
+  }, [selectedMonth]);
+
+  /* ----------------------------------------
+     FETCH MEETINGS (SERVER FILTERED)
+  ---------------------------------------- */
   const loadMeetings = async () => {
     setLoading(true);
 
     try {
       const url = API_ENDPOINTS.getMeetings(
-        repFilter || undefined, // only pass rep if selected
+        repFilter || undefined,
         page,
-        limit
+        limit,
+        {
+          month: selectedMonth,
+          week: selectedWeek,
+        }
       );
 
       const res = await apiClient.get(url);
@@ -53,11 +111,11 @@ export default function Meetings() {
 
   useEffect(() => {
     loadMeetings();
-  }, [page, repFilter]); // ⭐ if rep changes → refetch
+  }, [page, repFilter, selectedMonth, selectedWeek]);
 
-  /* -------------------------------------------------------
+  /* ----------------------------------------
      LOCAL SEARCH (client-side)
-  -------------------------------------------------------*/
+  ---------------------------------------- */
   const filtered = meetings.filter((m) => {
     const q = query.toLowerCase();
     return (
@@ -72,9 +130,9 @@ export default function Meetings() {
     setOpenPanel(true);
   };
 
-  /* -------------------------------------------------------
+  /* ----------------------------------------
      RENDER
-  -------------------------------------------------------*/
+  ---------------------------------------- */
   return (
     <div className="space-y-10 pb-20 px-6 md:px-10 lg:px-14">
       {/* HEADER */}
@@ -85,9 +143,9 @@ export default function Meetings() {
         </p>
       </div>
 
-      {/* SEARCH + FILTERS + ACTIONS */}
+      {/* SEARCH + FILTERS */}
       <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
-        {/* Search Box */}
+        {/* Search */}
         <div className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-white w-full md:w-96 shadow-sm">
           <Search size={18} className="text-gray-400" />
           <input
@@ -98,84 +156,59 @@ export default function Meetings() {
           />
         </div>
 
-        {/* Filter & Upload */}
+        {/* Filters */}
         <div className="flex items-center gap-3">
+          {/* Rep */}
+          <Select
+            value={repFilter}
+            onChange={(v) => {
+              setPage(1);
+              setRepFilter(v ?? "");
+            }}
+            options={reps}
+            placeholder="All Reps"
+          />
+
+          {/* Month */}
+          <Select
+            value={selectedMonth}
+            onChange={(v) => {
+              setPage(1);
+              setSelectedMonth(v);
+            }}
+            options={months}
+            placeholder="All Months"
+            format={formatMonthLabel}
+          />
+
+          {/* Week */}
           <div className="relative">
             <select
-              value={repFilter}
+              disabled={!selectedMonth}
+              value={selectedWeek ?? ""}
               onChange={(e) => {
                 setPage(1);
-                setRepFilter(e.target.value);
+                setSelectedWeek(
+                  e.target.value ? Number(e.target.value) : undefined
+                );
               }}
-              className="
-                  appearance-none 
-                  px-4 py-2 
-                  pr-10                       
-                  bg-white border rounded-lg 
-                  text-sm shadow-sm 
-                  cursor-pointer
-                  focus:outline-none focus:ring-2 focus:ring-blue-100
-                "
+              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm disabled:bg-gray-100"
             >
-              <option value="">All Reps</option>
-              {reps.map((r) => (
-                <option key={r} value={r}>
-                  {r}
+              <option value="">All Weeks</option>
+              {weeks.map((w: any) => (
+                <option key={w.week} value={w.week}>
+                  {w.label}
                 </option>
               ))}
             </select>
 
-            {/* Custom Chevron so spacing is perfect */}
             <ChevronDown
               size={16}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
             />
           </div>
 
-          <div className="relative">
-            <select
-              className="
-                  appearance-none 
-                  px-4 py-2 
-                  pr-10                       
-                  bg-white border rounded-lg 
-                  text-sm shadow-sm 
-                  cursor-pointer
-                  focus:outline-none focus:ring-2 focus:ring-blue-100
-                "
-            >
-              <option value="">All Months</option>
-            </select>
-
-            {/* Custom Chevron so spacing is perfect */}
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          </div>
-
-          <div className="relative">
-            <select
-              className="
-                  appearance-none 
-                  px-4 py-2 
-                  pr-10                       
-                  bg-white border rounded-lg 
-                  text-sm shadow-sm 
-                  cursor-pointer
-                  focus:outline-none focus:ring-2 focus:ring-blue-100
-                "
-            >
-              <option value="">All Weeks</option>
-            </select>
-
-            {/* Custom Chevron so spacing is perfect */}
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          </div>
-
+          {/* Upload */}
           <button
             onClick={() => setUploadOpen(true)}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-2"
@@ -194,13 +227,11 @@ export default function Meetings() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
-                <th className="py-3 px-4 text-left font-medium">Rep</th>
-                <th className="py-3 px-4 text-left font-medium">Client</th>
-                <th className="py-3 px-4 text-left font-medium">
-                  Primary Contact
-                </th>
-                <th className="py-3 px-4 text-left font-medium">Purpose</th>
-                <th className="py-3 px-4 text-left font-medium">Outcome</th>
+                <th className="py-3 px-4 text-left">Rep</th>
+                <th className="py-3 px-4 text-left">Client</th>
+                <th className="py-3 px-4 text-left">Primary Contact</th>
+                <th className="py-3 px-4 text-left">Purpose</th>
+                <th className="py-3 px-4 text-left">Outcome</th>
                 <th className="py-3 px-4"></th>
               </tr>
             </thead>
@@ -209,36 +240,18 @@ export default function Meetings() {
               {filtered.map((m) => (
                 <tr
                   key={m.id}
-                  className="border-t hover:bg-gray-50 cursor-pointer transition"
+                  className="border-t hover:bg-gray-50 cursor-pointer"
                   onClick={() => openDetails(m)}
                 >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-semibold">
-                        {m.repName?.charAt(0)}
-                      </div>
-                      {m.repName}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {m.customerName}
-                  </td>
-
-                  <td className="px-4 py-3 text-gray-700">
-                    {m.primaryContact}
-                  </td>
-
-                  <td className="px-4 py-3 text-gray-700">
-                    {m.meetingPurpose}
-                  </td>
-
+                  <td className="px-4 py-3">{m.repName}</td>
+                  <td className="px-4 py-3 font-medium">{m.customerName}</td>
+                  <td className="px-4 py-3">{m.primaryContact}</td>
+                  <td className="px-4 py-3">{m.meetingPurpose}</td>
                   <td className="px-4 py-3 text-gray-600">
                     {m.meetingOutcome?.slice(0, 80)}…
                   </td>
-
                   <td className="px-4 py-3 text-right">
-                    <ChevronRight size={18} className="text-gray-400" />
+                    <ChevronRight size={18} />
                   </td>
                 </tr>
               ))}
@@ -254,34 +267,25 @@ export default function Meetings() {
           </table>
         )}
 
-        {/* PAGINATION FOOTER */}
+        {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-4 border-t bg-gray-50">
+          <div className="flex justify-between px-4 py-4 border-t bg-gray-50">
             <button
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className={`px-3 py-2 rounded-lg text-sm ${
-                page === 1
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-white border hover:bg-gray-100"
-              }`}
+              className="px-3 py-2 rounded-lg text-sm bg-white border disabled:opacity-40"
             >
               Previous
             </button>
 
-            <div className="text-sm text-gray-600">
-              Page <span className="font-semibold">{page}</span> of{" "}
-              <span className="font-semibold">{totalPages}</span>
+            <div className="text-sm">
+              Page <b>{page}</b> of <b>{totalPages}</b>
             </div>
 
             <button
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
-              className={`px-3 py-2 rounded-lg text-sm ${
-                page === totalPages
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-white border hover:bg-gray-100"
-              }`}
+              className="px-3 py-2 rounded-lg text-sm bg-white border disabled:opacity-40"
             >
               Next
             </button>
@@ -289,14 +293,14 @@ export default function Meetings() {
         )}
       </div>
 
-      {/* DETAILS PANEL */}
+      {/* DETAILS */}
       <MeetingDetailsPanel
         open={openPanel}
         onClose={() => setOpenPanel(false)}
         meeting={selected}
       />
 
-      {/* UPLOAD MODAL */}
+      {/* UPLOAD */}
       <Modal open={uploadOpen} onClose={() => setUploadOpen(false)}>
         <UploadMeetingsForm
           onSuccess={() => {
@@ -305,6 +309,44 @@ export default function Meetings() {
           }}
         />
       </Modal>
+    </div>
+  );
+}
+
+/* ----------------------------------------
+   Reusable Select
+---------------------------------------- */
+function Select({
+  value,
+  onChange,
+  options,
+  placeholder,
+  format,
+}: {
+  value?: string;
+  onChange: (v?: string) => void;
+  options: string[];
+  placeholder?: string;
+  format?: (v: string) => string;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {format ? format(o) : o}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={16}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+      />
     </div>
   );
 }

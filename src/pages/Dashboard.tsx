@@ -11,6 +11,8 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { formatMonthLabel } from "../utils/dateUtils";
+
 /* ---------------------------------------------
    TYPES
 ----------------------------------------------*/
@@ -241,26 +243,20 @@ export default function Dashboard() {
             onChange={setSelectedMonth}
             options={months}
             placeholder="All Months"
+            formatLabel={formatMonthLabel}
           />
 
           <div className="relative">
             <select
-              disabled={!selectedMonth}
               value={selectedWeek ?? ""}
               onChange={(e) =>
                 setSelectedWeek(
                   e.target.value ? Number(e.target.value) : undefined
                 )
               }
-              className="
-      appearance-none px-4 py-2 pr-10
-      bg-white border rounded-lg
-      text-sm shadow-sm
-      disabled:bg-gray-100 disabled:text-gray-400
-    "
+              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
             >
               <option value="">All Weeks</option>
-
               {weeks.map((w) => (
                 <option key={w.week} value={w.week}>
                   {w.label}
@@ -508,11 +504,13 @@ function Select({
   onChange,
   options,
   placeholder,
+  formatLabel,
 }: {
   value?: string;
   onChange: (v?: string) => void;
   options: string[];
   placeholder?: string;
+  formatLabel?: (v: string) => string;
 }) {
   return (
     <div className="relative">
@@ -524,7 +522,7 @@ function Select({
         <option value="">{placeholder}</option>
         {options.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {formatLabel ? formatLabel(o) : o}
           </option>
         ))}
       </select>
