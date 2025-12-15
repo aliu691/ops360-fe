@@ -223,10 +223,18 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         )}
       </div>
 
-      {/* Info */}
+      {/* Info Bar */}
       <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-3 py-3 text-sm text-gray-600">
-        <Info size={18} />
-        Uploads are assigned to the selected reporting week.
+        <Info size={18} className="text-gray-500" />
+        Need the correct format?{" "}
+        <a
+          href="https://docs.google.com/spreadsheets/d/1hJVXp9ZA8zoUuz9BXFvtR4PS70pdectd0uj3bZmbGao/edit?usp=sharing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 ml-1 underline"
+        >
+          Download Template
+        </a>
       </div>
 
       {/* Actions */}

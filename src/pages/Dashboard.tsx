@@ -11,7 +11,11 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { formatMonthLabel } from "../utils/dateUtils";
+import {
+  formatMonthLabel,
+  getCurrentMonth,
+  getCurrentWeek,
+} from "../utils/dateUtils";
 
 /* ---------------------------------------------
    TYPES
@@ -123,7 +127,17 @@ export default function Dashboard() {
   useEffect(() => {
     apiClient
       .get(API_ENDPOINTS.getAvailableMonths())
-      .then((res) => setMonths(res.data?.items ?? []))
+      .then((res) => {
+        const items = res.data?.items ?? [];
+        setMonths(items);
+
+        const currentMonth = getCurrentMonth();
+
+        // ✅ auto-select current month if present
+        if (!selectedMonth && items.includes(currentMonth)) {
+          setSelectedMonth(currentMonth);
+        }
+      })
       .catch(() => setMonths([]));
   }, []);
 
@@ -135,7 +149,18 @@ export default function Dashboard() {
 
     apiClient
       .get(API_ENDPOINTS.getAvailableWeeks(selectedMonth))
-      .then((res) => setWeeks(res.data?.items ?? []))
+      .then((res) => {
+        const items = res.data?.items ?? [];
+        setWeeks(items);
+
+        const currentWeek = getCurrentWeek();
+
+        // ✅ auto-select current week if it exists in this month
+        const match = items.find((w: WeekOption) => w.week === currentWeek);
+        if (match) {
+          setSelectedWeek(match.week);
+        }
+      })
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
