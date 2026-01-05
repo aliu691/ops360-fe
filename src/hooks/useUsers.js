@@ -1,0 +1,22 @@
+import { useEffect, useState } from "react";
+import apiClient from "../config/apiClient";
+import { API_ENDPOINTS } from "../config/api";
+export function useUsers() {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    useEffect(() => {
+        setLoading(true);
+        apiClient
+            .get(API_ENDPOINTS.getUsers())
+            .then((res) => {
+            setUsers(res.data?.items ?? []);
+        })
+            .catch(() => {
+            setError("Failed to load users");
+            setUsers([]);
+        })
+            .finally(() => setLoading(false));
+    }, []);
+    return { users, loading, error };
+}
