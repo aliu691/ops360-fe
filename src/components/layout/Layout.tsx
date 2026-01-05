@@ -1,6 +1,7 @@
 import React, { PropsWithChildren } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import Breadcrumbs from "../Breadcrumbs";
 
 export default function Layout({ children }: PropsWithChildren<{}>) {
   return (
@@ -19,7 +20,8 @@ export default function Layout({ children }: PropsWithChildren<{}>) {
           </header>
 
           {/* Content area */}
-          <main className="flex-1 overflow-auto p-8">
+          <main className="flex-1 overflow-auto px-8 py-6">
+            {/* Page content */}
             <div className="mx-auto">{children}</div>
           </main>
         </div>

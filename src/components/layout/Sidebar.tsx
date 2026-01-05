@@ -1,13 +1,36 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { UploadCloud, ListOrdered, LayoutGrid, Settings } from "lucide-react";
+import {
+  UploadCloud,
+  ListOrdered,
+  LayoutGrid,
+  Settings,
+  Users,
+} from "lucide-react";
 
 export default function Sidebar() {
   const location = useLocation();
 
   const menu = [
-    { name: "Meetings List", icon: ListOrdered, path: "/meetings" },
-    { name: "KPI Dashboard", icon: LayoutGrid, path: "/kpi" },
-    { name: "Settings", icon: Settings, path: "/settings" },
+    {
+      name: "KPI Dashboard",
+      icon: LayoutGrid,
+      path: "/kpi",
+    },
+    {
+      name: "Meetings List",
+      icon: ListOrdered,
+      path: "/meetings",
+    },
+    {
+      name: "Users",
+      icon: Users,
+      path: "/users", // 👈 User List page
+    },
+    {
+      name: "Settings",
+      icon: Settings,
+      path: "/settings",
+    },
   ];
 
   return (
