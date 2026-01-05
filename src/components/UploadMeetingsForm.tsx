@@ -10,8 +10,7 @@ import {
   getCurrentMonth,
   getCurrentWeek,
 } from "../utils/dateUtils";
-
-const reps = ["Ben", "Faith", "John", "Sarah"];
+import { useUsers } from "../hooks/useUsers";
 
 interface WeekOption {
   week: number;
@@ -36,6 +35,16 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
 
   const currentMonth = getCurrentMonth();
   const currentWeek = getCurrentWeek();
+
+  const { users, loading: usersLoading } = useUsers();
+
+  const [selectedRep, setSelectedRep] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!selectedRep && users.length > 0) {
+      setSelectedRep(users[0].name);
+    }
+  }, [users, selectedRep]);
 
   /* --------------------------------
      LOAD CALENDAR MONTHS
@@ -136,12 +145,13 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         <select
           value={rep}
           onChange={(e) => setRep(e.target.value)}
+          disabled={usersLoading}
           className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
         >
           <option value="">Select a representative...</option>
-          {reps.map((r) => (
-            <option key={r} value={r}>
-              {r}
+          {users.map((u) => (
+            <option key={u.id} value={u.name}>
+              {u.name}
             </option>
           ))}
         </select>
