@@ -23,6 +23,10 @@ export default defineConfig([
       globals: globals.browser,
     },
 
+    /**
+     * 🔥 Override strict errors from recommended configs
+     * Turn them into warnings so CI doesn't block deploys
+     */
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
