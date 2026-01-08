@@ -1,0 +1,11 @@
+{
+  "git": {
+    "productionBranch": "main"
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
