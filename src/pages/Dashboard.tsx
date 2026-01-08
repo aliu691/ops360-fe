@@ -135,9 +135,10 @@ export default function Dashboard() {
 
         const currentMonth = getCurrentMonth();
 
-        // ✅ auto-select current month if present
-        if (!selectedMonth && items.includes(currentMonth)) {
+        if (items.includes(currentMonth)) {
           setSelectedMonth(currentMonth);
+        } else if (items.length > 0) {
+          setSelectedMonth(items[0]); // fallback
         }
       })
       .catch(() => setMonths([]));
@@ -156,11 +157,14 @@ export default function Dashboard() {
         setWeeks(items);
 
         const currentWeek = getCurrentWeek();
+        const match = items.find(
+          (w: { week: number }) => w.week === currentWeek
+        );
 
-        // ✅ auto-select current week if it exists in this month
-        const match = items.find((w: WeekOption) => w.week === currentWeek);
         if (match) {
           setSelectedWeek(match.week);
+        } else if (items.length > 0) {
+          setSelectedWeek(items[0].week); // fallback
         }
       })
       .catch(() => setWeeks([]));
