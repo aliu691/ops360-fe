@@ -26,4 +26,4 @@ jobs:
         run: npm run build
 
       - name: Deploy to staging
-        run: curl -X POST "${{ secrets.VERCEL_STAGING_DEPLOY_HOOK }}?forceNew=1&production=1"
+        run: curl -X POST "${{ secrets.VERCEL_STAGING_DEPLOY_HOOK }}?production=1"
