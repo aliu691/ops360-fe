@@ -6,10 +6,6 @@ export interface KpiFilters {
   quarter?: string; // YYYY-QN
 }
 
-/* ---------------------------------------
-   API ENDPOINTS
-----------------------------------------*/
-
 export const API_ENDPOINTS = {
   uploadMeetings: (repName: string, month: string, week: number) =>
     `${BASE_URL}/upload/meetings?repName=${encodeURIComponent(
@@ -64,6 +60,13 @@ export const API_ENDPOINTS = {
   getCalendarMonths: () => `${BASE_URL}/calendar/months`,
   getCalendarWeeks: (month: string) =>
     `${BASE_URL}/calendar/weeks?month=${encodeURIComponent(month)}`,
+
+  getUsers: () => `${BASE_URL}/users`,
+  getUserById: (id: number | string) => `${BASE_URL}/users/${id}`,
+
+  createUser: `/users`,
+  updateUser: (id: number | string) => `${BASE_URL}/users/${id}`,
+  deactivateUser: (id: number | string) => `${BASE_URL}/users/${id}`,
 };
 
 export default BASE_URL;

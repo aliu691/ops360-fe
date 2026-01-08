@@ -10,8 +10,7 @@ import {
   getCurrentMonth,
   getCurrentWeek,
 } from "../utils/dateUtils";
-
-const reps = ["Ben", "Faith", "John", "Sarah"];
+import { useUsers } from "../hooks/useUsers";
 
 export default function Meetings() {
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -37,6 +36,16 @@ export default function Meetings() {
 
   const currentMonth = getCurrentMonth();
   const currentWeek = getCurrentWeek();
+
+  const { users, loading: usersLoading } = useUsers();
+
+  const [selectedRep, setSelectedRep] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!selectedRep && users.length > 0) {
+      setSelectedRep(users[0].name);
+    }
+  }, [users, selectedRep]);
 
   /* ----------------------------------------
      LOAD MONTHS (auto-select current)
@@ -158,15 +167,14 @@ export default function Meetings() {
 
         {/* Filters */}
         <div className="flex items-center gap-3">
-          {/* Rep */}
           <Select
-            value={repFilter}
+            value={repFilter || undefined}
             onChange={(v) => {
               setPage(1);
               setRepFilter(v ?? "");
             }}
-            options={reps}
-            placeholder="All Reps"
+            options={users.map((u) => u.name)}
+            placeholder={usersLoading ? "Loading reps..." : "All Reps"}
           />
 
           {/* Month */}

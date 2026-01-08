@@ -1,7 +1,7 @@
-// src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
 import apiClient from "../config/apiClient";
 import { API_ENDPOINTS } from "../config/api";
+import { useUsers } from "../hooks/useUsers";
 
 import {
   ChevronRight,
@@ -11,7 +11,11 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { formatMonthLabel } from "../utils/dateUtils";
+import {
+  formatMonthLabel,
+  getCurrentMonth,
+  getCurrentWeek,
+} from "../utils/dateUtils";
 
 /* ---------------------------------------------
    TYPES
@@ -53,12 +57,6 @@ interface WeekOption {
   startDate: string;
   endDate: string;
 }
-
-/* ---------------------------------------------
-   CONFIG
-----------------------------------------------*/
-
-const reps = ["Ben", "Faith", "John", "Sarah"];
 
 /* ---------------------------------------------
    HELPERS
@@ -107,8 +105,6 @@ function statusIcon(status?: FindingStatus) {
 ----------------------------------------------*/
 
 export default function Dashboard() {
-  const [selectedRep, setSelectedRep] = useState<string>("Ben");
-
   const [kpi, setKpi] = useState<KPIWeeklySnapshot | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -120,10 +116,31 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState<string | undefined>();
   const [selectedWeek, setSelectedWeek] = useState<number | undefined>();
 
+  const { users, loading: usersLoading } = useUsers();
+
+  const [selectedRep, setSelectedRep] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!selectedRep && users.length > 0) {
+      setSelectedRep(users[0].name);
+    }
+  }, [users, selectedRep]);
+
   useEffect(() => {
     apiClient
       .get(API_ENDPOINTS.getAvailableMonths())
-      .then((res) => setMonths(res.data?.items ?? []))
+      .then((res) => {
+        const items = res.data?.items ?? [];
+        setMonths(items);
+
+        const currentMonth = getCurrentMonth();
+
+        if (items.includes(currentMonth)) {
+          setSelectedMonth(currentMonth);
+        } else if (items.length > 0) {
+          setSelectedMonth(items[0]); // fallback
+        }
+      })
       .catch(() => setMonths([]));
   }, []);
 
@@ -135,7 +152,21 @@ export default function Dashboard() {
 
     apiClient
       .get(API_ENDPOINTS.getAvailableWeeks(selectedMonth))
-      .then((res) => setWeeks(res.data?.items ?? []))
+      .then((res) => {
+        const items = res.data?.items ?? [];
+        setWeeks(items);
+
+        const currentWeek = getCurrentWeek();
+        const match = items.find(
+          (w: { week: number }) => w.week === currentWeek
+        );
+
+        if (match) {
+          setSelectedWeek(match.week);
+        } else if (items.length > 0) {
+          setSelectedWeek(items[0].week); // fallback
+        }
+      })
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
@@ -172,21 +203,6 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [selectedRep, selectedMonth, selectedWeek]);
 
-  /* ---------------------------------------------------
-     WEEKLY FINDINGS MESSAGE
-  ---------------------------------------------------*/
-  function weeklyFindingsMessage() {
-    const status = normalizeStatus(kpi?.status);
-    const total = kpi?.totalMeetings ?? 0;
-
-    if (status === "GOOD")
-      return `Weekly Activity meets required minimum (5). Logged ${total} meetings.`;
-    if (status === "FAIL")
-      return `Weekly Activity critical. Logged ${total} meetings.`;
-
-    return `Weekly Activity below required minimum (5). Logged ${total} meetings.`;
-  }
-
   const scoreCardBorder =
     normalizeStatus(kpi?.status) === "GOOD"
       ? "border-emerald-200"
@@ -220,19 +236,16 @@ export default function Dashboard() {
             <select
               value={selectedRep}
               onChange={(e) => setSelectedRep(e.target.value)}
-              className="
-                appearance-none px-4 py-2 pr-10
-                bg-white border rounded-lg 
-                text-sm shadow-sm cursor-pointer
-                focus:outline-none focus:ring-2 focus:ring-blue-100
-              "
+              disabled={usersLoading}
+              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
             >
-              {reps.map((r) => (
-                <option key={r} value={r}>
-                  {r}
+              {users.map((u) => (
+                <option key={u.id} value={u.name}>
+                  {u.name}
                 </option>
               ))}
             </select>
+
             <ChevronDown
               size={16}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
@@ -358,7 +371,8 @@ export default function Dashboard() {
               </p>
 
               <p className="text-sm text-gray-500 mt-1">
-                {weeklyFindingsMessage()}
+                {kpi?.weeklyFindings?.[0]?.message ??
+                  "No issues detected this week."}
               </p>
             </div>
           </div>
