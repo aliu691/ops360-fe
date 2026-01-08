@@ -10,12 +10,9 @@
     "skipLibCheck": true,
 
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-
-    // ❌ REMOVE this line:
-    // "noEmit": true,
 
     "strict": true,
     "noUnusedLocals": true,
