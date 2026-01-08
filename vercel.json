@@ -1,7 +1,4 @@
 {
-  "git": {
-    "productionBranch": "main"
-  },
   "rewrites": [
     {
       "source": "/(.*)",
