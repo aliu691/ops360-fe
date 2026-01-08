@@ -35,7 +35,6 @@ export default function Sidebar() {
 
   return (
     <div className="w-64 bg-[#0F172A] text-gray-300 min-h-screen flex flex-col py-8 px-4 shadow-lg">
-      {/* LOGO */}
       <h1 className="text-2xl font-bold px-2 mb-8 text-white">Ops360</h1>
 
       {/* MENU */}
