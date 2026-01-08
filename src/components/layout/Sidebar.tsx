@@ -22,9 +22,9 @@ export default function Sidebar() {
       path: "/meetings",
     },
     {
-      name: "Users",
+      name: "Sales Reps",
       icon: Users,
-      path: "/users", // 👈 User List page
+      path: "/users",
     },
     {
       name: "Settings",
