@@ -58,8 +58,12 @@ export const API_ENDPOINTS = {
   getAvailableQuarters: () => `${BASE_URL}/filters/quarters`,
 
   getCalendarMonths: () => `${BASE_URL}/calendar/months`,
-  getCalendarWeeks: (month: string) =>
-    `${BASE_URL}/calendar/weeks?month=${encodeURIComponent(month)}`,
+  // getCalendarWeeks: (month: string) =>
+  //   `${BASE_URL}/calendar/weeks?month=${encodeURIComponent(month)}`,
+  getCalendarWeeks: (month: string, userId: number) =>
+    `${BASE_URL}/calendar/weeks?month=${encodeURIComponent(
+      month
+    )}&userId=${userId}`,
 
   getUsers: () => `${BASE_URL}/users`,
   getUserById: (id: number | string) => `${BASE_URL}/users/${id}`,

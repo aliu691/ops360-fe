@@ -72,27 +72,31 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
     setWeeks([]);
     setSelectedWeek("");
 
-    if (!selectedMonth) return;
+    if (!selectedMonth || !selectedRep) return;
+
+    const user = users.find((u) => u.name === selectedRep);
+    if (!user) return;
 
     apiClient
-      .get(API_ENDPOINTS.getCalendarWeeks(selectedMonth))
+      .get(API_ENDPOINTS.getCalendarWeeks(selectedMonth, user.id))
       .then((res) => {
         const allWeeks: WeekOption[] = res.data?.items ?? [];
 
-        // ✅ REMOVE weeks that already have data
+        // ✅ Only block weeks THIS USER already uploaded
         const availableWeeks = allWeeks.filter((w) => !w.hasData);
 
         setWeeks(availableWeeks);
 
-        // ✅ Auto-select current week ONLY if it has no data
-        const match = availableWeeks.find((w) => w.week === currentWeek);
+        const currentWeek = getCurrentWeek();
 
+        // ✅ Auto-select current week if available
+        const match = availableWeeks.find((w) => w.week === currentWeek);
         if (match) {
           setSelectedWeek(match.week);
         }
       })
       .catch(() => setWeeks([]));
-  }, [selectedMonth]);
+  }, [selectedMonth, selectedRep, users]);
 
   const handleFile = (e: any) => {
     setFile(e.target.files[0]);
@@ -127,9 +131,10 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
       setTimeout(() => {
         navigate("/meetings");
       }, 400);
-    } catch (err) {
-      console.error("Upload error:", err);
-      toast.error("Upload failed");
+    } catch (err: any) {
+      const message = err?.response?.data?.message || "Upload failed";
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }
