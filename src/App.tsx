@@ -7,27 +7,27 @@ import UsersList from "./pages/UsersList";
 import UserDetails from "./pages/UsersDetails";
 import Login from "./pages/Login";
 import AuthGuard from "./components/AuthGuard";
+import AdminsList from "./pages/AdminsList";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ---------- PUBLIC ROUTES ---------- */}
+        {/* -------- Public routes -------- */}
         <Route path="/login" element={<Login />} />
-        {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+        {/* <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} /> */}
 
-        {/* ---------- PROTECTED ROUTES ---------- */}
-        <Route element={<AuthGuard />}>
-          <Route element={<Layout />}>
-            <Route path="/meetings" element={<Meetings />} />
-            <Route path="/kpi" element={<KpiDashboard />} />
-            <Route path="/users" element={<UsersList />} />
-            <Route path="/users/:id" element={<UserDetails />} />
-          </Route>
+        {/* -------- Protected routes -------- */}
+        <Route element={<Layout />}>
+          <Route path="/" element={<Navigate to="/kpi" replace />} />
+          <Route path="/kpi" element={<KpiDashboard />} />
+          <Route path="/meetings" element={<Meetings />} />
+          <Route path="/users" element={<UsersList />} />
+
+          {/* SUPER ADMIN */}
+          <Route path="/admins" element={<AdminsList />} />
         </Route>
-
-        {/* Default */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
 
       <Toaster position="top-center" />
