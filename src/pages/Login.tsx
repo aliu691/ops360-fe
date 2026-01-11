@@ -3,7 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { toast } from "react-hot-toast";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import AuthLayout from "../components/layout/AuthLayout";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
   const { login } = useAuth();
@@ -85,12 +85,12 @@ export default function Login() {
 
         {/* FORGOT */}
         <div className="text-right mb-4">
-          <a
-            href="/forgot-password"
+          <Link
+            to="/forgot-password"
             className="text-sm text-blue-600 hover:underline"
           >
             Forgot password?
-          </a>
+          </Link>
         </div>
 
         {/* BUTTON */}

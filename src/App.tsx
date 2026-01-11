@@ -8,6 +8,8 @@ import UserDetails from "./pages/UsersDetails";
 import Login from "./pages/Login";
 import AuthGuard from "./components/AuthGuard";
 import AdminsList from "./pages/AdminsList";
+import SetPassword from "./pages/SetPassword";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
@@ -15,8 +17,8 @@ function App() {
       <Routes>
         {/* -------- Public routes -------- */}
         <Route path="/login" element={<Login />} />
-        {/* <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/accept-invite" element={<AcceptInvite />} /> */}
+        <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* -------- Protected routes -------- */}
         <Route element={<Layout />}>
