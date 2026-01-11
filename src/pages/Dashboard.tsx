@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import apiClient from "../config/apiClient";
+import { apiClient } from "../config/apiClient";
 import { API_ENDPOINTS } from "../config/api";
 import { useUsers } from "../hooks/useUsers";
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import apiClient from "../config/apiClient";
+import { apiClient } from "../config/apiClient";
 import { API_ENDPOINTS } from "../config/api";
 import { Pencil, Trash2 } from "lucide-react";
 import { User } from "../types/user";
