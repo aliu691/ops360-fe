@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import apiClient from "../config/apiClient";
+import { apiClient } from "../config/apiClient";
 import { Search, ChevronDown, ChevronRight, UploadCloud } from "lucide-react";
 import MeetingDetailsPanel from "../components/MeetingDetailsPanel";
 import Modal from "../components/Modal";
