@@ -43,7 +43,7 @@ export default function Meetings() {
 
   useEffect(() => {
     if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].name);
+      setSelectedRep(users[0].firstName);
     }
   }, [users, selectedRep]);
 
@@ -173,7 +173,7 @@ export default function Meetings() {
               setPage(1);
               setRepFilter(v ?? "");
             }}
-            options={users.map((u) => u.name)}
+            options={users.map((u) => u.firstName)}
             placeholder={usersLoading ? "Loading reps..." : "All Reps"}
           />
 

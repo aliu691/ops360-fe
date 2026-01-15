@@ -6,7 +6,6 @@ import { Toaster } from "react-hot-toast";
 import UsersList from "./pages/UsersList";
 import UserDetails from "./pages/UsersDetails";
 import Login from "./pages/Login";
-import AuthGuard from "./components/AuthGuard";
 import AdminsList from "./pages/AdminsList";
 import SetPassword from "./pages/SetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -26,6 +25,7 @@ function App() {
           <Route path="/kpi" element={<KpiDashboard />} />
           <Route path="/meetings" element={<Meetings />} />
           <Route path="/users" element={<UsersList />} />
+          <Route path="/users/:id" element={<UserDetails />} />
 
           {/* SUPER ADMIN */}
           <Route path="/admins" element={<AdminsList />} />

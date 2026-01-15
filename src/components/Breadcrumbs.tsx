@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { apiClient } from "../config/apiClient";
 import { API_ENDPOINTS } from "../config/api";
+import { apiClient } from "../config/apiClient";
 
 export default function Breadcrumbs() {
   const location = useLocation();
@@ -22,12 +22,17 @@ export default function Breadcrumbs() {
 
       // Fetch user name
       setUserName(null);
+      console.log("Fetching user with id:", id);
 
       apiClient
         .get(API_ENDPOINTS.getUserById(id))
         .then((res) => {
-          const name = res.data?.item?.name;
-          setUserName(name ?? null);
+          const item = res.data?.item;
+          const fullName =
+            item?.firstName && item?.lastName
+              ? `${item.firstName} ${item.lastName}`
+              : item?.firstName || item?.lastName || null;
+          setUserName(fullName);
         })
         .catch((err) => {
           console.error("Error fetching user:", err);
