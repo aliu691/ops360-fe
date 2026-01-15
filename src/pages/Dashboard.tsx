@@ -122,7 +122,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].name);
+      setSelectedRep(users[0].firstName);
     }
   }, [users, selectedRep]);
 
@@ -240,8 +240,8 @@ export default function Dashboard() {
               className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
             >
               {users.map((u) => (
-                <option key={u.id} value={u.name}>
-                  {u.name}
+                <option key={u.id} value={u.firstName}>
+                  {u.firstName}
                 </option>
               ))}
             </select>

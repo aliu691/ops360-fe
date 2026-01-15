@@ -96,6 +96,7 @@ export const API_ENDPOINTS = {
   createUser: () => `/users`,
   updateUser: (id: number | string) => `/users/${id}`,
   deactivateUser: (id: number | string) => `/users/${id}`,
+  getDepartments: () => `/departments`,
 };
 
 export default BASE_URL;

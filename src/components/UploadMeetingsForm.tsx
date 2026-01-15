@@ -42,7 +42,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
 
   useEffect(() => {
     if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].name);
+      setSelectedRep(users[0].firstName);
     }
   }, [users, selectedRep]);
 
@@ -74,7 +74,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
 
     if (!selectedMonth || !selectedRep) return;
 
-    const user = users.find((u) => u.name === selectedRep);
+    const user = users.find((u) => u.firstName === selectedRep);
     if (!user) return;
 
     apiClient
@@ -155,8 +155,8 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         >
           <option value="">Select a representative...</option>
           {users.map((u) => (
-            <option key={u.id} value={u.name}>
-              {u.name}
+            <option key={u.id} value={u.firstName}>
+              {u.firstName}
             </option>
           ))}
         </select>
