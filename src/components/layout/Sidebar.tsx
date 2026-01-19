@@ -6,6 +6,7 @@ import {
   Users,
   Shield,
   LogOut,
+  FunnelIcon,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -16,9 +17,14 @@ export default function Sidebar() {
 
   const menu = [
     {
-      name: "KPI Dashboard",
+      name: "Meetings Dashboard",
       icon: LayoutGrid,
       path: "/kpi",
+    },
+    {
+      name: "Sales Pipeline",
+      icon: FunnelIcon,
+      path: "/pipeline",
     },
     {
       name: "Meetings List",

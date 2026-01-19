@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import AdminsList from "./pages/AdminsList";
 import SetPassword from "./pages/SetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
+import SalesPipelinePage from "./pages/SalesPipelinePage";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="/meetings" element={<Meetings />} />
           <Route path="/users" element={<UsersList />} />
           <Route path="/users/:id" element={<UserDetails />} />
+          <Route path="/pipeline" element={<SalesPipelinePage />} />
 
           {/* SUPER ADMIN */}
           <Route path="/admins" element={<AdminsList />} />
