@@ -32,12 +32,15 @@ export default function FunnelStageRow({ index, stage, maxAmount }: Props) {
   /** -----------------------------
    * Color logic
    ------------------------------*/
+  /** -----------------------------
+ * Color logic (design-matched)
+ ------------------------------*/
   const bgMap = [
-    "linear-gradient(90deg, #dbeafe, #bfdbfe)", // stage 1
-    "linear-gradient(90deg, #bfdbfe, #93c5fd)", // stage 2
-    "linear-gradient(90deg, #93c5fd, #60a5fa)", // stage 3
-    "linear-gradient(90deg, #60a5fa, #3b82f6)", // stage 4
-    "linear-gradient(90deg, #1e3a8a, #2563eb)", // closed won
+    "linear-gradient(90deg, #9333EA, #7e22ce)", // stage 1 – purple
+    "linear-gradient(90deg, #2563EB, #1d4ed8)", // stage 2 – blue
+    "linear-gradient(90deg, #0D9488, #0f766e)", // stage 3 – teal
+    "linear-gradient(90deg, #D97706, #b45309)", // stage 4 – orange
+    "linear-gradient(90deg, #059669, #047857)", // stage 5 – green (Closed Won)
   ];
 
   return (

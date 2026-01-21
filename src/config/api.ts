@@ -136,6 +136,7 @@ export const API_ENDPOINTS = {
   createPipelineDeal: () => `/pipeline`,
 
   updatePipelineDeal: (externalDealId: string) => `/pipeline/${externalDealId}`,
+  getDealStages: () => `/deal-stages`,
 };
 
 export default BASE_URL;
