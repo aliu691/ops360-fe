@@ -5,6 +5,8 @@ import { apiClient } from "../config/apiClient";
 import { useNavigate } from "react-router-dom";
 import { Opportunity } from "../types/pipeline";
 import { StagePill } from "../components/pipeline/StagePill";
+import { UploadPipelineModal } from "../components/pipeline/UploadPiepelineForm";
+import { useLocation } from "react-router-dom";
 
 export default function OpportunitiesPage() {
   const navigate = useNavigate();
@@ -96,6 +98,16 @@ export default function OpportunitiesPage() {
     setStageId(undefined);
   };
 
+  const [showUpload, setShowUpload] = useState(false);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.resetPage) {
+      setPage(1);
+    }
+  }, [location.state?.resetPage]);
+
   /* =========================
    * UI
    * ========================= */
@@ -119,10 +131,17 @@ export default function OpportunitiesPage() {
             Add Opportunity
           </button>
 
-          <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+          <button
+            onClick={() => setShowUpload(true)}
+            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+          >
             <span className="text-lg">＋</span>
             Upload Pipeline
           </button>
+
+          {showUpload && (
+            <UploadPipelineModal onClose={() => setShowUpload(false)} />
+          )}
         </div>
       </div>
 

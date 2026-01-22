@@ -1,16 +1,13 @@
-import { ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PipelineFunnel from "../components/pipeline/PipelineFunnel";
 import PipelineSummaryBar from "../components/pipeline/PipelineSummaryBar";
 import QuarterlyTargetCard from "../components/pipeline/QuarterlyTargetCard";
+import StageDealsModal from "../components/pipeline/StageDealsModal";
 import { Select } from "../components/select";
 import { API_ENDPOINTS } from "../config/api";
 import { apiClient } from "../config/apiClient";
 import { PipelineResponse, PipelineSummary } from "../types/pipeline";
 
-/* =========================
- * PAGE
- * ========================= */
 export default function SalesPipelinePage() {
   const [data, setData] = useState<PipelineResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,11 +19,16 @@ export default function SalesPipelinePage() {
   const [salesRepId, setSalesRepId] = useState<string | undefined>();
   const [preSalesRepId, setPreSalesRepId] = useState<string | undefined>();
 
+  const [selectedStage, setSelectedStage] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+
   const page = 1;
-  const limit = 50;
+  const limit = 100;
 
   /* =========================
-   * LOAD USERS (FOR FILTERS)
+   * LOAD USERS
    * ========================= */
   useEffect(() => {
     const loadUsers = async () => {
@@ -50,7 +52,6 @@ export default function SalesPipelinePage() {
    * ========================= */
   const loadPipeline = async () => {
     setLoading(true);
-
     try {
       const url = API_ENDPOINTS.getPipelineDeals({
         page,
@@ -64,14 +65,12 @@ export default function SalesPipelinePage() {
       const res = await apiClient.get(url);
       const apiData = res.data;
 
-      const companyYearlyTarget = 3000000000;
-
       const normalizedSummary: PipelineSummary = {
         year: apiData.summary.year,
         totalDeals: apiData.summary.totalDeals ?? 0,
         totalPipeline: apiData.summary.totalPipelineAmount ?? 0,
         closedWonAmount: apiData.summary.closedWon?.amount ?? 0,
-        yearlyTarget: apiData.summary.yearlyTarget ?? companyYearlyTarget,
+        yearlyTarget: apiData.summary.yearlyTarget ?? 0,
         quarterlyTarget: apiData.summary.quarterlyTarget ?? null,
         achievementPercent: apiData.summary.percentToTarget ?? null,
         avgDealSize: apiData.summary.avgDealSize ?? 0,
@@ -90,12 +89,22 @@ export default function SalesPipelinePage() {
     loadPipeline();
   }, [year, quarter, salesRepId, preSalesRepId]);
 
+  /* =========================
+   * MODAL DEALS (displayStage ONLY)
+   * ========================= */
+  const modalDeals = useMemo(() => {
+    if (!data || !selectedStage) return [];
+    return data.items.filter(
+      (deal) => deal.displayStage?.id === selectedStage.id
+    );
+  }, [data, selectedStage]);
+
   if (loading || !data) {
     return <div className="p-6">Loading pipeline…</div>;
   }
 
   const resetFilters = () => {
-    setYear("2025"); // default year
+    setYear("2025");
     setQuarter(undefined);
     setSalesRepId(undefined);
     setPreSalesRepId(undefined);
@@ -164,7 +173,7 @@ export default function SalesPipelinePage() {
 
       {/* CONTENT */}
       <div className="grid grid-cols-12 gap-6">
-        {/* LEFT CARD */}
+        {/* LEFT */}
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-white rounded-2xl shadow-sm p-6 h-full">
             <QuarterlyTargetCard
@@ -174,10 +183,13 @@ export default function SalesPipelinePage() {
           </div>
         </div>
 
-        {/* RIGHT CARD */}
+        {/* RIGHT */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm p-6">
-            <PipelineFunnel stageTotals={data.stageTotals} />
+            <PipelineFunnel
+              stageTotals={data.stageTotals}
+              onStageClick={(stage) => setSelectedStage(stage)}
+            />
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -185,6 +197,15 @@ export default function SalesPipelinePage() {
           </div>
         </div>
       </div>
+
+      {/* ===== MODAL ===== */}
+      {selectedStage && (
+        <StageDealsModal
+          stageName={selectedStage.name}
+          deals={modalDeals}
+          onClose={() => setSelectedStage(null)}
+        />
+      )}
     </div>
   );
 }

@@ -23,12 +23,24 @@ export const API_ENDPOINTS = {
   getAdminByEmail: (email: string) => `/admins/${email}`,
 
   /* =========================
-   * MEETINGS
+   * UPLOADS
    * ========================= */
   uploadMeetings: (repName: string, month: string, week: number) =>
     `/upload/meetings?repName=${encodeURIComponent(
       repName
     )}&month=${encodeURIComponent(month)}&week=${week}`,
+
+  uploadPipeline: (params: { year: number; salesOwnerId?: number }) => {
+    const query = new URLSearchParams();
+
+    query.append("year", String(params.year));
+
+    if (params.salesOwnerId) {
+      query.append("salesOwnerId", String(params.salesOwnerId));
+    }
+
+    return `/upload/pipeline?${query.toString()}`;
+  },
 
   getMeetings: (
     repName?: string,

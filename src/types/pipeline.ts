@@ -40,6 +40,7 @@ export interface PipelineResponse {
   totalPages: number;
   stageTotals: StageTotalsMap;
   summary: PipelineSummary;
+  items: Opportunity[];
 }
 
 export interface Opportunity {

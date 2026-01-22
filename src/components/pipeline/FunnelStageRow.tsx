@@ -4,9 +4,15 @@ interface Props {
   index: number;
   stage: StageTotalsItem;
   maxAmount: number;
+  onClick?: (stageKey: string) => void;
 }
 
-export default function FunnelStageRow({ index, stage, maxAmount }: Props) {
+export default function FunnelStageRow({
+  index,
+  stage,
+  maxAmount,
+  onClick,
+}: Props) {
   const amount = typeof stage.amount === "number" ? stage.amount : 0;
   const count = typeof stage.count === "number" ? stage.count : 0;
   const isEmpty = amount === 0 && count === 0;
@@ -32,9 +38,7 @@ export default function FunnelStageRow({ index, stage, maxAmount }: Props) {
   /** -----------------------------
    * Color logic
    ------------------------------*/
-  /** -----------------------------
- * Color logic (design-matched)
- ------------------------------*/
+
   const bgMap = [
     "linear-gradient(90deg, #9333EA, #7e22ce)", // stage 1 – purple
     "linear-gradient(90deg, #2563EB, #1d4ed8)", // stage 2 – blue
@@ -46,12 +50,15 @@ export default function FunnelStageRow({ index, stage, maxAmount }: Props) {
   return (
     <div className="w-full flex justify-center">
       <div
+        onClick={() => onClick?.(stage.key)}
         className={`
-          relative flex items-center justify-between
-          px-6 py-4 rounded-xl
-          transition-all duration-300
-          ${isEmpty ? "bg-gray-200 text-gray-500" : "text-white"}
-        `}
+    relative flex items-center justify-between
+    px-6 py-4 rounded-xl
+    transition-all duration-200
+    cursor-pointer
+    hover:scale-[1.015]
+    ${isEmpty ? "bg-gray-200 text-gray-500" : "text-white"}
+  `}
         style={{
           width: `${widthPercent}%`,
           maxWidth: "920px",
