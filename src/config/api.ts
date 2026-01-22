@@ -23,12 +23,24 @@ export const API_ENDPOINTS = {
   getAdminByEmail: (email: string) => `/admins/${email}`,
 
   /* =========================
-   * MEETINGS
+   * UPLOADS
    * ========================= */
   uploadMeetings: (repName: string, month: string, week: number) =>
     `/upload/meetings?repName=${encodeURIComponent(
       repName
     )}&month=${encodeURIComponent(month)}&week=${week}`,
+
+  uploadPipeline: (params: { year: number; salesOwnerId?: number }) => {
+    const query = new URLSearchParams();
+
+    query.append("year", String(params.year));
+
+    if (params.salesOwnerId) {
+      query.append("salesOwnerId", String(params.salesOwnerId));
+    }
+
+    return `/upload/pipeline?${query.toString()}`;
+  },
 
   getMeetings: (
     repName?: string,
@@ -97,6 +109,46 @@ export const API_ENDPOINTS = {
   updateUser: (id: number | string) => `/users/${id}`,
   deactivateUser: (id: number | string) => `/users/${id}`,
   getDepartments: () => `/departments`,
+
+  /* =========================
+   * PIPELINE (DEALS)
+   * ========================= */
+
+  getPipelineDeals: (params?: {
+    page?: number;
+    limit?: number;
+    year?: number;
+    quarter?: number;
+    stageId?: number;
+    stageKey?: string;
+    salesOwnerId?: number;
+    preSalesOwnerIds?: number[];
+  }) => {
+    const query = new URLSearchParams();
+
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.limit) query.append("limit", String(params.limit));
+    if (params?.year) query.append("year", String(params.year));
+    if (params?.quarter) query.append("quarter", String(params.quarter));
+    if (params?.stageId) query.append("stageId", String(params.stageId));
+    if (params?.stageKey) query.append("stageKey", params.stageKey);
+    if (params?.salesOwnerId)
+      query.append("salesOwnerId", String(params.salesOwnerId));
+    if (params?.preSalesOwnerIds?.length) {
+      query.append("preSalesOwnerIds", params.preSalesOwnerIds.join(","));
+    }
+
+    const qs = query.toString();
+    return `/pipeline${qs ? `?${qs}` : ""}`;
+  },
+
+  getPipelineDealByExternalId: (externalDealId: string) =>
+    `/pipeline/deal/${externalDealId}`,
+
+  createPipelineDeal: () => `/pipeline`,
+
+  updatePipelineDeal: (externalDealId: string) => `/pipeline/${externalDealId}`,
+  getDealStages: () => `/deal-stages`,
 };
 
 export default BASE_URL;

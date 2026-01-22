@@ -9,6 +9,10 @@ import Login from "./pages/Login";
 import AdminsList from "./pages/AdminsList";
 import SetPassword from "./pages/SetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
+import SalesPipelinePage from "./pages/SalesPipelinePage";
+import OpportunitiesPage from "./pages/Opportunities";
+import OpportunityDetailsPage from "./pages/OpportunityDetailsPage";
+import CreateOpportunityPage from "./pages/CreateOpportunityPage";
 
 function App() {
   return (
@@ -26,6 +30,16 @@ function App() {
           <Route path="/meetings" element={<Meetings />} />
           <Route path="/users" element={<UsersList />} />
           <Route path="/users/:id" element={<UserDetails />} />
+          <Route path="/pipeline" element={<SalesPipelinePage />} />
+          <Route path="/opportunities" element={<OpportunitiesPage />} />
+          <Route
+            path="/opportunities/:id"
+            element={<OpportunityDetailsPage />}
+          />
+          <Route
+            path="/opportunities/new"
+            element={<CreateOpportunityPage />}
+          />
 
           {/* SUPER ADMIN */}
           <Route path="/admins" element={<AdminsList />} />
