@@ -14,10 +14,30 @@ export default function SalesPipelinePage() {
 
   const [users, setUsers] = useState<any[]>([]);
 
-  const [year, setYear] = useState<string>("2025");
-  const [quarter, setQuarter] = useState<string | undefined>();
-  const [salesRepId, setSalesRepId] = useState<string | undefined>();
-  const [preSalesRepId, setPreSalesRepId] = useState<string | undefined>();
+  /* =========================
+   * FILTER VISIBILITY
+   * ========================= */
+  const [showFilters, setShowFilters] = useState(false);
+
+  /* =========================
+   * DRAFT FILTERS (UI ONLY)
+   * ========================= */
+  const [draftYear, setDraftYear] = useState("2025");
+  const [draftQuarter, setDraftQuarter] = useState<string | undefined>();
+  const [draftSalesRepId, setDraftSalesRepId] = useState<string | undefined>();
+  const [draftPreSalesRepId, setDraftPreSalesRepId] = useState<
+    string | undefined
+  >();
+
+  /* =========================
+   * APPLIED FILTERS (API)
+   * ========================= */
+  const [appliedFilters, setAppliedFilters] = useState({
+    year: "2025",
+    quarter: undefined as string | undefined,
+    salesRepId: undefined as string | undefined,
+    preSalesRepId: undefined as string | undefined,
+  });
 
   const [selectedStage, setSelectedStage] = useState<{
     id: number;
@@ -48,7 +68,7 @@ export default function SalesPipelinePage() {
   const preSalesReps = users.filter((u) => u.department === "PRE_SALES");
 
   /* =========================
-   * LOAD PIPELINE
+   * LOAD PIPELINE (APPLIED ONLY)
    * ========================= */
   const loadPipeline = async () => {
     setLoading(true);
@@ -56,10 +76,16 @@ export default function SalesPipelinePage() {
       const url = API_ENDPOINTS.getPipelineDeals({
         page,
         limit,
-        year: Number(year),
-        quarter: quarter ? Number(quarter) : undefined,
-        salesOwnerId: salesRepId ? Number(salesRepId) : undefined,
-        preSalesOwnerIds: preSalesRepId ? [Number(preSalesRepId)] : undefined,
+        year: Number(appliedFilters.year),
+        quarter: appliedFilters.quarter
+          ? Number(appliedFilters.quarter)
+          : undefined,
+        salesOwnerId: appliedFilters.salesRepId
+          ? Number(appliedFilters.salesRepId)
+          : undefined,
+        preSalesOwnerIds: appliedFilters.preSalesRepId
+          ? [Number(appliedFilters.preSalesRepId)]
+          : undefined,
       });
 
       const res = await apiClient.get(url);
@@ -87,10 +113,37 @@ export default function SalesPipelinePage() {
 
   useEffect(() => {
     loadPipeline();
-  }, [year, quarter, salesRepId, preSalesRepId]);
+  }, [appliedFilters]);
 
   /* =========================
-   * MODAL DEALS (displayStage ONLY)
+   * APPLY / RESET FILTERS
+   * ========================= */
+  const applyFilters = () => {
+    setAppliedFilters({
+      year: draftYear,
+      quarter: draftQuarter,
+      salesRepId: draftSalesRepId,
+      preSalesRepId: draftPreSalesRepId,
+    });
+    setShowFilters(false);
+  };
+
+  const resetFilters = () => {
+    setDraftYear("2025");
+    setDraftQuarter(undefined);
+    setDraftSalesRepId(undefined);
+    setDraftPreSalesRepId(undefined);
+
+    setAppliedFilters({
+      year: "2025",
+      quarter: undefined,
+      salesRepId: undefined,
+      preSalesRepId: undefined,
+    });
+  };
+
+  /* =========================
+   * MODAL DEALS
    * ========================= */
   const modalDeals = useMemo(() => {
     if (!data || !selectedStage) return [];
@@ -103,19 +156,12 @@ export default function SalesPipelinePage() {
     return <div className="p-6">Loading pipeline…</div>;
   }
 
-  const resetFilters = () => {
-    setYear("2025");
-    setQuarter(undefined);
-    setSalesRepId(undefined);
-    setPreSalesRepId(undefined);
-  };
-
   /* =========================
    * UI
    * ========================= */
   return (
     <div className="space-y-8 pb-20 px-6 md:px-10 lg:px-14">
-      {/* HEADER + FILTERS */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Sales Pipeline</h1>
@@ -124,25 +170,35 @@ export default function SalesPipelinePage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          className="px-4 py-2 text-sm rounded-lg border bg-white hover:bg-gray-50"
+        >
+          {showFilters ? "Hide Filters" : "Filters"}
+        </button>
+      </div>
+
+      {/* FILTER PANEL */}
+      {showFilters && (
+        <div className="flex flex-wrap gap-3 p-4 border rounded-xl bg-gray-50">
           <Select
-            value={year}
-            onChange={(v) => v && setYear(v)}
-            options={[year]}
+            value={draftYear}
+            onChange={(v) => v && setDraftYear(v)}
+            options={["2025"]}
             placeholder="Year"
           />
 
           <Select
-            value={quarter}
-            onChange={setQuarter}
+            value={draftQuarter}
+            onChange={setDraftQuarter}
             options={["1", "2", "3", "4"]}
             placeholder="All Quarters"
             format={(q) => `Q${q}`}
           />
 
           <Select
-            value={salesRepId}
-            onChange={setSalesRepId}
+            value={draftSalesRepId}
+            onChange={setDraftSalesRepId}
             options={salesReps.map((u) => String(u.id))}
             placeholder="All Sales Reps"
             format={(id) => {
@@ -152,8 +208,8 @@ export default function SalesPipelinePage() {
           />
 
           <Select
-            value={preSalesRepId}
-            onChange={setPreSalesRepId}
+            value={draftPreSalesRepId}
+            onChange={setDraftPreSalesRepId}
             options={preSalesReps.map((u) => String(u.id))}
             placeholder="All Presales Reps"
             format={(id) => {
@@ -162,14 +218,23 @@ export default function SalesPipelinePage() {
             }}
           />
 
-          <button
-            onClick={resetFilters}
-            className="px-4 py-2 text-sm rounded-lg border bg-white hover:bg-gray-50 text-gray-700"
-          >
-            Reset
-          </button>
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 text-sm rounded-lg border bg-white hover:bg-gray-50"
+            >
+              Reset
+            </button>
+
+            <button
+              onClick={applyFilters}
+              className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Apply
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* CONTENT */}
       <div className="grid grid-cols-12 gap-6">
@@ -178,7 +243,11 @@ export default function SalesPipelinePage() {
           <div className="bg-white rounded-2xl shadow-sm p-6 h-full">
             <QuarterlyTargetCard
               summary={data.summary}
-              quarter={quarter ? Number(quarter) : undefined}
+              quarter={
+                appliedFilters.quarter
+                  ? Number(appliedFilters.quarter)
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -198,7 +267,7 @@ export default function SalesPipelinePage() {
         </div>
       </div>
 
-      {/* ===== MODAL ===== */}
+      {/* MODAL */}
       {selectedStage && (
         <StageDealsModal
           stageName={selectedStage.name}
