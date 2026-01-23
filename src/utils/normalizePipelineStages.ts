@@ -1,7 +1,7 @@
 import { StageTotalsItem } from "../types/pipeline";
 
 const STAGE_ORDER = [
-  { key: "PROSPECTING", name: "Prospecting", order: 1 },
+  { key: "QUALIFIED_OPPORTUNITY", name: "Qualified Opportunity", order: 1 },
   {
     key: "NEEDS_DEFINED",
     name: "Needs Defined / RFP / Demo Signed Off",
