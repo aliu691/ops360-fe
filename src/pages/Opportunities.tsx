@@ -7,6 +7,7 @@ import { Opportunity } from "../types/pipeline";
 import { StagePill } from "../components/pipeline/StagePill";
 import { UploadPipelineModal } from "../components/pipeline/UploadPiepelineForm";
 import { useLocation } from "react-router-dom";
+import Pagination from "../components/Pagination";
 
 export default function OpportunitiesPage() {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function OpportunitiesPage() {
   const [page, setPage] = useState(1);
   const limit = 15;
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   /* =========================
    * LOAD USERS (FILTERS)
@@ -62,6 +64,7 @@ export default function OpportunitiesPage() {
 
       setItems(res.data.items ?? []);
       setTotalPages(res.data.totalPages ?? 1);
+      setTotal(res.data?.total ?? 0);
     } catch (err) {
       console.error(err);
     } finally {
@@ -287,32 +290,16 @@ export default function OpportunitiesPage() {
             )}
           </tbody>
         </table>
-
-        {/* PAGINATION */}
-        {totalPages > 1 && (
-          <div className="flex justify-between items-center px-4 py-4 border-t bg-gray-50">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            <span className="text-sm">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </span>
-
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage(page + 1)}
-              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        )}
       </div>
+      {/* ================= PAGINATION ================= */}
+      <Pagination
+        page={page}
+        limit={limit}
+        total={total}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        label="deals"
+      />
     </div>
   );
 }
