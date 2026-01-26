@@ -40,6 +40,8 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
 
   const [selectedRep, setSelectedRep] = useState<string | undefined>();
 
+  const salesUsers = users.filter((u) => u.department === "SALES");
+
   useEffect(() => {
     if (!selectedRep && users.length > 0) {
       setSelectedRep(users[0].firstName);
@@ -154,7 +156,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
           className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
         >
           <option value="">Select a representative...</option>
-          {users.map((u) => (
+          {salesUsers.map((u) => (
             <option key={u.id} value={u.firstName}>
               {u.firstName}
             </option>

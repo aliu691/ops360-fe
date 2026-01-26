@@ -43,6 +43,8 @@ export default function Meetings() {
 
   const [selectedRep, setSelectedRep] = useState<string | undefined>();
 
+  const salesUsers = users.filter((u) => u.department === "SALES");
+
   useEffect(() => {
     if (!selectedRep && users.length > 0) {
       setSelectedRep(users[0].firstName);
@@ -175,7 +177,7 @@ export default function Meetings() {
               setPage(1);
               setRepFilter(v ?? "");
             }}
-            options={users.map((u) => u.firstName)}
+            options={salesUsers.map((u) => u.firstName)}
             placeholder={usersLoading ? "Loading reps..." : "All Reps"}
           />
 

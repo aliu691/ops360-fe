@@ -120,6 +120,8 @@ export default function Dashboard() {
 
   const [selectedRep, setSelectedRep] = useState<string | undefined>();
 
+  const salesUsers = users.filter((u) => u.department === "SALES");
+
   useEffect(() => {
     if (!selectedRep && users.length > 0) {
       setSelectedRep(users[0].firstName);
@@ -222,7 +224,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mt-6 mb-10">
         {/* Left */}
         <div>
-          <h1 className="text-3xl font-extrabold">KPI Dashboard</h1>
+          <h1 className="text-3xl font-extrabold">Meetings KPI Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">
             Weekly snapshot — shows findings and quality metrics for the
             selected rep.
@@ -239,7 +241,7 @@ export default function Dashboard() {
               disabled={usersLoading}
               className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
             >
-              {users.map((u) => (
+              {salesUsers.map((u) => (
                 <option key={u.id} value={u.firstName}>
                   {u.firstName}
                 </option>
