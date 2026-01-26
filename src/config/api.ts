@@ -149,6 +149,32 @@ export const API_ENDPOINTS = {
 
   updatePipelineDeal: (externalDealId: string) => `/pipeline/${externalDealId}`,
   getDealStages: () => `/deal-stages`,
+
+  /* =========================
+   * CUSTOMERS
+   * ========================= */
+
+  getCustomers: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.limit) query.append("limit", String(params.limit));
+
+    const qs = query.toString();
+    return `/customers${qs ? `?${qs}` : ""}`;
+  },
+
+  getCustomerById: (id: number | string) => `/customers/${id}`,
+
+  createCustomer: () => `/customers`,
+
+  updateCustomer: (id: number | string) => `/customers/${id}`,
+
+  createCustomerContacts: (customerId: number | string) =>
+    `/customers/${customerId}/contacts`,
+
+  updateCustomerContact: (contactId: number | string) =>
+    `/customers/contacts/${contactId}`,
 };
 
 export default BASE_URL;

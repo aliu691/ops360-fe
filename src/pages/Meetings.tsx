@@ -12,6 +12,7 @@ import {
 } from "../utils/dateUtils";
 import { useUsers } from "../hooks/useUsers";
 import { Select } from "../components/select";
+import Pagination from "../components/Pagination";
 
 export default function Meetings() {
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -109,9 +110,9 @@ export default function Meetings() {
       const res = await apiClient.get(url);
       const data = res.data;
 
-      setMeetings(data.items || []);
-      setTotalPages(data.totalPages || 1);
-      setTotal(data.total || 0);
+      setMeetings(data.items ?? []);
+      setTotalPages(data.totalPages ?? 1);
+      setTotal(data?.total ?? 0);
     } catch (err) {
       console.error("Error fetching meetings:", err);
     }
@@ -275,32 +276,15 @@ export default function Meetings() {
             </tbody>
           </table>
         )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <div className="flex justify-between px-4 py-4 border-t bg-gray-50">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-              className="px-3 py-2 rounded-lg text-sm bg-white border disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            <div className="text-sm">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage(page + 1)}
-              className="px-3 py-2 rounded-lg text-sm bg-white border disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        )}
       </div>
+      <Pagination
+        page={page}
+        limit={limit}
+        total={total}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        label="deals"
+      />
 
       {/* DETAILS */}
       <MeetingDetailsPanel

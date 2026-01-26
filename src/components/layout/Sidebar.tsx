@@ -4,6 +4,7 @@ import {
   LayoutGrid,
   Settings,
   Users,
+  User,
   Shield,
   LogOut,
   FunnelIcon,
@@ -38,9 +39,14 @@ export default function Sidebar() {
       path: "/meetings",
     },
     {
-      name: "Sales Reps",
-      icon: Users,
+      name: "Team Members",
+      icon: User,
       path: "/users",
+    },
+    {
+      name: "Customers",
+      icon: Users,
+      path: "/customers",
     },
 
     // 🔐 SUPER ADMIN ONLY

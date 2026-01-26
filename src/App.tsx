@@ -13,6 +13,9 @@ import SalesPipelinePage from "./pages/SalesPipelinePage";
 import OpportunitiesPage from "./pages/Opportunities";
 import OpportunityDetailsPage from "./pages/OpportunityDetailsPage";
 import CreateOpportunityPage from "./pages/CreateOpportunityPage";
+import CustomersList from "./pages/CustomersList";
+import CustomerDetails from "./pages/CustomerDetailsPage";
+import CreateCustomerPage from "./pages/CreateCustomerPage";
 
 function App() {
   return (
@@ -40,6 +43,9 @@ function App() {
             path="/opportunities/new"
             element={<CreateOpportunityPage />}
           />
+          <Route path="/customers" element={<CustomersList />} />
+          <Route path="/customers/:id" element={<CustomerDetails />} />
+          <Route path="/customers/new" element={<CreateCustomerPage />} />
 
           {/* SUPER ADMIN */}
           <Route path="/admins" element={<AdminsList />} />
