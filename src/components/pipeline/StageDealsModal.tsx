@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 interface Props {
   stageName: string;
   deals: any[];
@@ -5,6 +7,8 @@ interface Props {
 }
 
 export default function StageDealsModal({ stageName, deals, onClose }: Props) {
+  const navigate = useNavigate();
+
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -24,6 +28,7 @@ export default function StageDealsModal({ stageName, deals, onClose }: Props) {
             <div
               key={deal.externalDealId}
               className="border rounded-lg p-4 hover:bg-gray-50"
+              onClick={() => navigate(`/opportunities/${deal.externalDealId}`)}
             >
               <div className="font-medium">{deal.dealName}</div>
               <div className="text-sm text-gray-600">

@@ -15,7 +15,12 @@ import { useAuth } from "../../hooks/useAuth";
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role, admin, logout } = useAuth();
+  const { actor, logout } = useAuth();
+
+  if (!actor) return null;
+
+  const isAdmin = actor.type === "ADMIN";
+  const isSuperAdmin = actor.type === "ADMIN" && actor.role === "SUPER_ADMIN";
 
   const menu = [
     {
@@ -39,18 +44,29 @@ export default function Sidebar() {
       path: "/meetings",
     },
     {
-      name: "Team Members",
-      icon: User,
-      path: "/users",
-    },
-    {
       name: "Customers",
       icon: Users,
       path: "/customers",
     },
 
-    // 🔐 SUPER ADMIN ONLY
-    ...(role === "SUPER_ADMIN"
+    // 🔐 ADMIN + SUPER ADMIN
+    ...(isAdmin
+      ? [
+          {
+            name: "Team Members",
+            icon: User,
+            path: "/users",
+          },
+          {
+            name: "Settings",
+            icon: Settings,
+            path: "/settings",
+          },
+        ]
+      : []),
+
+    // 👑 SUPER ADMIN ONLY
+    ...(isSuperAdmin
       ? [
           {
             name: "Manage Admins",
@@ -59,12 +75,6 @@ export default function Sidebar() {
           },
         ]
       : []),
-
-    {
-      name: "Settings",
-      icon: Settings,
-      path: "/settings",
-    },
   ];
 
   const handleLogout = () => {
@@ -105,36 +115,38 @@ export default function Sidebar() {
       </nav>
 
       {/* PROFILE + LOGOUT */}
-      {admin && (
-        <div className="mt-auto px-2 pt-8 pb-4 border-t border-white/10">
-          <div className="flex items-center justify-between gap-3">
-            {/* USER INFO */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-semibold uppercase">
-                {admin.email?.slice(0, 2)}
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold text-white truncate max-w-[140px]">
-                  {admin.email}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {admin.role === "SUPER_ADMIN" ? "Super Admin" : "Admin"}
-                </div>
-              </div>
+      <div className="mt-auto px-2 pt-8 pb-4 border-t border-white/10">
+        <div className="flex items-center justify-between gap-3">
+          {/* USER INFO */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-semibold uppercase">
+              {actor.email?.slice(0, 2)}
             </div>
 
-            {/* LOGOUT */}
-            <button
-              onClick={handleLogout}
-              title="Logout"
-              className="p-2 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-500/10 transition"
-            >
-              <LogOut size={18} />
-            </button>
+            <div>
+              <div className="text-sm font-semibold text-white truncate max-w-[140px]">
+                {actor.email}
+              </div>
+              <div className="text-xs text-gray-400">
+                {actor.type === "ADMIN"
+                  ? actor.role === "SUPER_ADMIN"
+                    ? "Super Admin"
+                    : "Admin"
+                  : "Sales Rep"}
+              </div>
+            </div>
           </div>
+
+          {/* LOGOUT */}
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="p-2 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-500/10 transition"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

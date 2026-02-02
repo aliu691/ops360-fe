@@ -13,6 +13,7 @@ import {
 import { useUsers } from "../hooks/useUsers";
 import { Select } from "../components/select";
 import Pagination from "../components/Pagination";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Meetings() {
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -45,11 +46,22 @@ export default function Meetings() {
 
   const salesUsers = users.filter((u) => u.department === "SALES");
 
+  const { actor, isUser, isAdmin } = useAuth();
+
+  const effectiveRepFilter =
+    actor?.type === "USER" ? undefined : repFilter || undefined;
+
   useEffect(() => {
-    if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].firstName);
+    // Admins default to first sales rep
+    if (actor?.type === "ADMIN" && !selectedRep && salesUsers.length > 0) {
+      setSelectedRep(salesUsers[0].firstName);
     }
-  }, [users, selectedRep]);
+
+    // Users: force rep to self (for UI consistency only)
+    if (actor?.type === "USER") {
+      setSelectedRep(actor.firstName);
+    }
+  }, [actor, salesUsers]);
 
   /* ----------------------------------------
      LOAD MONTHS (auto-select current)
@@ -99,15 +111,10 @@ export default function Meetings() {
     setLoading(true);
 
     try {
-      const url = API_ENDPOINTS.getMeetings(
-        repFilter || undefined,
-        page,
-        limit,
-        {
-          month: selectedMonth,
-          week: selectedWeek,
-        }
-      );
+      const url = API_ENDPOINTS.getMeetings(effectiveRepFilter, page, limit, {
+        month: selectedMonth,
+        week: selectedWeek,
+      });
 
       const res = await apiClient.get(url);
       const data = res.data;
@@ -171,15 +178,17 @@ export default function Meetings() {
 
         {/* Filters */}
         <div className="flex items-center gap-3">
-          <Select
-            value={repFilter || undefined}
-            onChange={(v) => {
-              setPage(1);
-              setRepFilter(v ?? "");
-            }}
-            options={salesUsers.map((u) => u.firstName)}
-            placeholder={usersLoading ? "Loading reps..." : "All Reps"}
-          />
+          {isAdmin && (
+            <Select
+              value={repFilter || undefined}
+              onChange={(v) => {
+                setPage(1);
+                setRepFilter(v ?? "");
+              }}
+              options={salesUsers.map((u) => u.firstName)}
+              placeholder={usersLoading ? "Loading reps..." : "All Reps"}
+            />
+          )}
 
           {/* Month */}
           <Select
@@ -194,40 +203,31 @@ export default function Meetings() {
           />
 
           {/* Week */}
-          <div className="relative">
-            <select
-              disabled={!selectedMonth}
-              value={selectedWeek ?? ""}
-              onChange={(e) => {
-                setPage(1);
-                setSelectedWeek(
-                  e.target.value ? Number(e.target.value) : undefined
-                );
-              }}
-              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm disabled:bg-gray-100"
-            >
-              <option value="">All Weeks</option>
-              {weeks.map((w: any) => (
-                <option key={w.week} value={w.week}>
-                  {w.label}
-                </option>
-              ))}
-            </select>
-
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          </div>
+          <Select
+            disabled={!selectedMonth}
+            value={selectedWeek ? String(selectedWeek) : undefined}
+            onChange={(v) => {
+              setPage(1);
+              setSelectedWeek(v ? Number(v) : undefined);
+            }}
+            options={weeks.map((w: any) => String(w.week))}
+            placeholder="All Weeks"
+            format={(v) => {
+              const match = weeks.find((w: any) => String(w.week) === v);
+              return match ? match.label : v;
+            }}
+          />
 
           {/* Upload */}
-          <button
-            onClick={() => setUploadOpen(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-2"
-          >
-            <UploadCloud size={16} />
-            Upload Weekly Report
-          </button>
+          {isUser && (
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-2"
+            >
+              <UploadCloud size={16} />
+              Upload Weekly Report
+            </button>
+          )}
         </div>
       </div>
 

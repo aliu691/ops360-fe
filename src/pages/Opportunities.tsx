@@ -2,36 +2,61 @@ import { useEffect, useState } from "react";
 import { Select } from "../components/select";
 import { API_ENDPOINTS } from "../config/api";
 import { apiClient } from "../config/apiClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Opportunity } from "../types/pipeline";
 import { StagePill } from "../components/pipeline/StagePill";
 import { UploadPipelineModal } from "../components/pipeline/UploadPiepelineForm";
-import { useLocation } from "react-router-dom";
 import Pagination from "../components/Pagination";
+import { useAuth } from "../hooks/useAuth";
 
 export default function OpportunitiesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAdmin } = useAuth();
 
   const [items, setItems] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [users, setUsers] = useState<any[]>([]);
-
-  const [year, setYear] = useState<string>("2025");
-  const [quarter, setQuarter] = useState<string | undefined>();
-  const [salesRepId, setSalesRepId] = useState<string | undefined>();
-  const [preSalesRepId, setPreSalesRepId] = useState<string | undefined>();
-
   const [dealStages, setDealStages] = useState<any[]>([]);
-  const [stageId, setStageId] = useState<string | undefined>();
 
+  /* =========================
+   * FILTER VISIBILITY
+   * ========================= */
+  const [showFilters, setShowFilters] = useState(false);
+
+  /* =========================
+   * DRAFT FILTERS (UI ONLY)
+   * ========================= */
+  const [draftYear, setDraftYear] = useState("2025");
+  const [draftQuarter, setDraftQuarter] = useState<string | undefined>();
+  const [draftSalesRepId, setDraftSalesRepId] = useState<string | undefined>();
+  const [draftPreSalesRepId, setDraftPreSalesRepId] = useState<
+    string | undefined
+  >();
+  const [draftStageId, setDraftStageId] = useState<string | undefined>();
+
+  /* =========================
+   * APPLIED FILTERS (API)
+   * ========================= */
+  const [appliedFilters, setAppliedFilters] = useState({
+    year: "2025",
+    quarter: undefined as string | undefined,
+    salesRepId: undefined as string | undefined,
+    preSalesRepId: undefined as string | undefined,
+    stageId: undefined as string | undefined,
+  });
+
+  /* =========================
+   * PAGINATION
+   * ========================= */
   const [page, setPage] = useState(1);
   const limit = 15;
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
   /* =========================
-   * LOAD USERS (FILTERS)
+   * LOAD USERS
    * ========================= */
   useEffect(() => {
     apiClient
@@ -44,21 +69,42 @@ export default function OpportunitiesPage() {
   const preSalesReps = users.filter((u) => u.department === "PRE_SALES");
 
   /* =========================
+   * LOAD DEAL STAGES
+   * ========================= */
+  useEffect(() => {
+    apiClient
+      .get(API_ENDPOINTS.getDealStages())
+      .then((res) => setDealStages(res.data?.items ?? []))
+      .catch(() => setDealStages([]));
+  }, []);
+
+  /* =========================
    * LOAD OPPORTUNITIES
    * ========================= */
   const loadOpportunities = async () => {
     setLoading(true);
-
     try {
       const res = await apiClient.get(
         API_ENDPOINTS.getPipelineDeals({
           page,
           limit,
-          year: Number(year),
-          quarter: quarter ? Number(quarter) : undefined,
-          salesOwnerId: salesRepId ? Number(salesRepId) : undefined,
-          preSalesOwnerIds: preSalesRepId ? [Number(preSalesRepId)] : undefined,
-          stageId: stageId ? Number(stageId) : undefined,
+          year: Number(appliedFilters.year),
+          quarter: appliedFilters.quarter
+            ? Number(appliedFilters.quarter)
+            : undefined,
+
+          salesOwnerId:
+            isAdmin && appliedFilters.salesRepId
+              ? Number(appliedFilters.salesRepId)
+              : undefined,
+
+          preSalesOwnerIds: appliedFilters.preSalesRepId
+            ? [Number(appliedFilters.preSalesRepId)]
+            : undefined,
+
+          stageId: appliedFilters.stageId
+            ? Number(appliedFilters.stageId)
+            : undefined,
         })
       );
 
@@ -73,50 +119,64 @@ export default function OpportunitiesPage() {
   };
 
   useEffect(() => {
-    const loadDealStages = async () => {
-      try {
-        const res = await apiClient.get(API_ENDPOINTS.getDealStages());
-        setDealStages(res.data?.items ?? []);
-      } catch (err) {
-        console.error("Failed to load deal stages", err);
-        setDealStages([]);
-      }
-    };
-
-    loadDealStages();
-  }, []);
-
-  useEffect(() => {
     loadOpportunities();
-  }, [year, quarter, salesRepId, preSalesRepId, page, stageId]);
+  }, [appliedFilters, page]);
 
   /* =========================
-   * HELPERS
+   * APPLY / RESET FILTERS
    * ========================= */
-  const resetFilters = () => {
-    setYear("2025"); // default year
-    setQuarter(undefined);
-    setSalesRepId(undefined);
-    setPreSalesRepId(undefined);
-    setStageId(undefined);
+  const applyFilters = () => {
+    setAppliedFilters({
+      year: draftYear,
+      quarter: draftQuarter,
+      salesRepId: draftSalesRepId,
+      preSalesRepId: draftPreSalesRepId,
+      stageId: draftStageId,
+    });
+
+    setPage(1);
+    setShowFilters(false);
   };
 
-  const [showUpload, setShowUpload] = useState(false);
+  const resetFilters = () => {
+    setDraftYear("2025");
+    setDraftQuarter(undefined);
+    setDraftPreSalesRepId(undefined);
+    setDraftStageId(undefined);
 
-  const location = useLocation();
+    if (isAdmin) {
+      setDraftSalesRepId(undefined);
+    }
 
+    setAppliedFilters({
+      year: "2025",
+      quarter: undefined,
+      salesRepId: undefined,
+      preSalesRepId: undefined,
+      stageId: undefined,
+    });
+
+    setPage(1);
+    setShowFilters(false);
+  };
+
+  /* =========================
+   * RESET PAGE FROM NAV
+   * ========================= */
   useEffect(() => {
     if (location.state?.resetPage) {
       setPage(1);
     }
   }, [location.state?.resetPage]);
 
+  const [showUpload, setShowUpload] = useState(false);
+
   /* =========================
    * UI
    * ========================= */
   return (
     <div className="space-y-6 pb-20 px-6 md:px-10 lg:px-14">
-      {/* HEADER + ACTIONS */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Opportunities</h1>
@@ -125,165 +185,163 @@ export default function OpportunitiesPage() {
           </p>
         </div>
 
-        {/* ACTION BUTTONS */}
         <div className="flex gap-3">
           <button
             onClick={() => navigate("/opportunities/new")}
-            className="flex items-center gap-2 px-4 py-2 border rounded-xl bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border rounded-xl bg-white text-sm hover:bg-gray-50"
           >
             Add Opportunity
           </button>
 
           <button
             onClick={() => setShowUpload(true)}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
+            className="px-5 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700"
           >
-            <span className="text-lg">＋</span>
-            Upload Pipeline
+            ＋ Upload Pipeline
           </button>
 
           {showUpload && (
             <UploadPipelineModal onClose={() => setShowUpload(false)} />
           )}
+
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="px-4 py-2 border rounded-xl bg-white text-sm hover:bg-gray-50"
+          >
+            {showFilters ? "Hide Filters" : "Filters"}
+          </button>
         </div>
       </div>
 
-      {/* FILTERS (NOW ABOVE TABLE) */}
-      <div className="flex flex-wrap gap-3 items-center justify-end">
-        <Select
-          value={year}
-          onChange={(v) => v && setYear(v)}
-          options={[year]}
-        />
+      {/* FILTER PANEL */}
+      {showFilters && (
+        <div className="flex flex-wrap gap-3 p-4 border rounded-xl bg-gray-50">
+          <Select
+            value={draftYear}
+            onChange={(v) => v && setDraftYear(v)}
+            options={["2025"]}
+            placeholder="Year"
+          />
 
-        <Select
-          value={quarter}
-          onChange={setQuarter}
-          options={["1", "2", "3", "4"]}
-          placeholder="All Quarters"
-          format={(q) => `Q${q}`}
-        />
+          <Select
+            value={draftQuarter}
+            onChange={setDraftQuarter}
+            options={["1", "2", "3", "4"]}
+            placeholder="All Quarters"
+            format={(q) => `Q${q}`}
+          />
 
-        <Select
-          value={salesRepId}
-          onChange={setSalesRepId}
-          options={salesReps.map((u) => String(u.id))}
-          placeholder="All Sales Reps"
-          format={(id) => {
-            const u = salesReps.find((x) => String(x.id) === id);
-            return u ? `${u.firstName} ${u.lastName}` : id;
-          }}
-        />
+          {isAdmin && (
+            <Select
+              value={draftSalesRepId}
+              onChange={setDraftSalesRepId}
+              options={salesReps.map((u) => String(u.id))}
+              placeholder="All Sales Reps"
+              format={(id) => {
+                const u = salesReps.find((x) => String(x.id) === id);
+                return u ? `${u.firstName} ${u.lastName}` : id;
+              }}
+            />
+          )}
 
-        <Select
-          value={preSalesRepId}
-          onChange={setPreSalesRepId}
-          options={preSalesReps.map((u) => String(u.id))}
-          placeholder="All Presales Reps"
-          format={(id) => {
-            const u = preSalesReps.find((x) => String(x.id) === id);
-            return u ? `${u.firstName} ${u.lastName}` : id;
-          }}
-        />
+          <Select
+            value={draftPreSalesRepId}
+            onChange={setDraftPreSalesRepId}
+            options={preSalesReps.map((u) => String(u.id))}
+            placeholder="All Presales Reps"
+            format={(id) => {
+              const u = preSalesReps.find((x) => String(x.id) === id);
+              return u ? `${u.firstName} ${u.lastName}` : id;
+            }}
+          />
 
-        <Select
-          value={stageId}
-          onChange={setStageId}
-          options={dealStages.map((s) => String(s.id))}
-          placeholder="All Deal Stages"
-          format={(id) => {
-            const stage = dealStages.find((s) => String(s.id) === id);
-            return stage ? stage.name : id;
-          }}
-        />
+          <Select
+            value={draftStageId}
+            onChange={setDraftStageId}
+            options={dealStages.map((s) => String(s.id))}
+            placeholder="All Deal Stages"
+            format={(id) => {
+              const s = dealStages.find((x) => String(x.id) === id);
+              return s ? s.name : id;
+            }}
+          />
 
-        <button
-          onClick={resetFilters}
-          className="px-4 py-2 text-sm rounded-lg border bg-white hover:bg-gray-50 text-gray-700"
-        >
-          Reset
-        </button>
-      </div>
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 border rounded-lg bg-white text-sm hover:bg-gray-50"
+            >
+              Reset
+            </button>
+            <button
+              onClick={applyFilters}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* TABLE */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="py-3 px-4 text-left">Organization Name</th>
-              <th className="py-3 px-4 text-left">Opportunity</th>
-              <th className="py-3 px-4 text-left">Deal Stage</th>
-              {/* <th className="py-3 px-4 text-left">Probability</th> */}
-              <th className="py-3 px-4 text-right">Amount (NGN)</th>
-              <th className="py-3 px-4 text-left">Expected Close Date</th>
-              <th className="py-3 px-4 text-center">Deal Owner</th>
+              <th className="px-4 py-3 text-left">Organization</th>
+              <th className="px-4 py-3 text-left">Opportunity</th>
+              <th className="px-4 py-3 text-left">Stage</th>
+              <th className="px-4 py-3 text-right">Amount (NGN)</th>
+              <th className="px-4 py-3 text-left">Expected Close</th>
+              <th className="px-4 py-3 text-center">Owner</th>
             </tr>
           </thead>
 
           <tbody>
-            {/* LOADING */}
             {loading && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-gray-500">
+                <td colSpan={6} className="py-10 text-center text-gray-500">
                   Loading opportunities…
                 </td>
               </tr>
             )}
 
-            {/* DATA */}
             {!loading &&
               items.map((deal) => (
                 <tr
                   key={deal.id}
-                  className="border-t hover:bg-gray-50 cursor-pointer"
                   onClick={() =>
                     navigate(`/opportunities/${deal.externalDealId}`)
                   }
+                  className="border-t hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-4 py-4 font-medium text-blue-600">
                     {deal.organizationName}
                   </td>
-
                   <td className="px-4 py-4">{deal.dealName}</td>
-
                   <td className="px-4 py-4">
                     <StagePill
                       probability={deal.displayStage?.probability}
                       label={deal.displayStage?.name}
                     />
                   </td>
-
-                  {/* <td className="px-4 py-4 text-gray-600">
-                    {deal.displayStage?.probability
-                      ? `${deal.displayStage.probability}%`
-                      : "—"}
-                  </td> */}
-
                   <td className="px-4 py-4 text-right font-semibold">
                     ₦{Number(deal.displayValue).toLocaleString()}
                   </td>
-
-                  <td className="px-4 py-4 text-gray-600">
+                  <td className="px-4 py-4">
                     {new Date(deal.expectedCloseDate).toLocaleDateString(
-                      "en-GB",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      }
+                      "en-GB"
                     )}
                   </td>
-
                   <td className="px-4 py-4 text-center">
                     {deal.salesOwner?.firstName ?? "—"}
                   </td>
                 </tr>
               ))}
 
-            {/* EMPTY */}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-gray-500">
+                <td colSpan={6} className="py-12 text-center text-gray-500">
                   No opportunities found
                 </td>
               </tr>
@@ -291,7 +349,7 @@ export default function OpportunitiesPage() {
           </tbody>
         </table>
       </div>
-      {/* ================= PAGINATION ================= */}
+
       <Pagination
         page={page}
         limit={limit}
