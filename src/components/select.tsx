@@ -8,6 +8,7 @@ export function Select({
   placeholder,
   format,
   disabled,
+  fullWidth = false, // ✅ default is NOT full width
 }: {
   value?: string;
   onChange: (v?: string) => void;
@@ -15,6 +16,7 @@ export function Select({
   placeholder?: string;
   format?: (v: string) => string;
   disabled?: boolean;
+  fullWidth?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -38,15 +40,16 @@ export function Select({
       : value;
 
   return (
-    <div ref={ref} className="relative w-fit">
+    <div ref={ref} className={`relative ${fullWidth ? "w-full" : "w-fit"}`}>
       {/* Trigger */}
       <button
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className={`flex items-center w-full px-4 py-2
-    bg-white border rounded-lg text-sm shadow-sm
-    ${disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}`}
+        className={`flex items-center px-4 py-2
+          ${fullWidth ? "w-full" : "min-w-[180px]"}
+          bg-white border rounded-lg text-sm shadow-sm
+          ${disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}`}
       >
         <span
           className={`flex-1 truncate text-left ${
@@ -67,9 +70,10 @@ export function Select({
       {/* Dropdown */}
       {open && (
         <div
-          className="absolute z-50 mt-1 w-full
-                     bg-white border border-gray-300 rounded-lg shadow-lg
-                     max-h-64 overflow-auto"
+          className={`absolute z-50 mt-1
+            ${fullWidth ? "w-full" : "min-w-full"}
+            bg-white border border-gray-300 rounded-lg shadow-lg
+            max-h-64 overflow-auto`}
         >
           {/* Placeholder option */}
           {placeholder && (
@@ -96,7 +100,7 @@ export function Select({
                 className={`px-4 py-2 text-sm cursor-pointer
                   ${
                     isActive
-                      ? "bg-gray-100 font-medium text-gray-900"
+                      ? "bg-blue-50 text-blue-700 font-medium"
                       : "hover:bg-gray-50"
                   }`}
               >

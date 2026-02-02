@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "../config/apiClient";
-import { Search, ChevronDown, ChevronRight, UploadCloud } from "lucide-react";
+import { Search, ChevronRight, UploadCloud } from "lucide-react";
 import MeetingDetailsPanel from "../components/MeetingDetailsPanel";
 import Modal from "../components/Modal";
 import UploadMeetingsForm from "../components/UploadMeetingsForm";
@@ -25,7 +25,7 @@ export default function Meetings() {
   const [repFilter, setRepFilter] = useState("");
 
   const [page, setPage] = useState(1);
-  const [limit] = useState(20);
+  const limit = 20;
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -41,31 +41,16 @@ export default function Meetings() {
   const currentWeek = getCurrentWeek();
 
   const { users, loading: usersLoading } = useUsers();
-
-  const [selectedRep, setSelectedRep] = useState<string | undefined>();
-
   const salesUsers = users.filter((u) => u.department === "SALES");
 
   const { actor, isUser, isAdmin } = useAuth();
 
-  const effectiveRepFilter =
-    actor?.type === "USER" ? undefined : repFilter || undefined;
+  // 🔐 USERS NEVER SEND repName — backend infers from JWT
+  const effectiveRepFilter = isAdmin && repFilter ? repFilter : undefined;
 
-  useEffect(() => {
-    // Admins default to first sales rep
-    if (actor?.type === "ADMIN" && !selectedRep && salesUsers.length > 0) {
-      setSelectedRep(salesUsers[0].firstName);
-    }
-
-    // Users: force rep to self (for UI consistency only)
-    if (actor?.type === "USER") {
-      setSelectedRep(actor.firstName);
-    }
-  }, [actor, salesUsers]);
-
-  /* ----------------------------------------
-     LOAD MONTHS (auto-select current)
-  ---------------------------------------- */
+  /* =========================
+     LOAD MONTHS
+  ========================= */
   useEffect(() => {
     apiClient
       .get(API_ENDPOINTS.getAvailableMonths())
@@ -80,10 +65,9 @@ export default function Meetings() {
       .catch(() => setMonths([]));
   }, []);
 
-  /* ----------------------------------------
-     LOAD WEEKS WHEN MONTH CHANGES
-     (auto-select current week)
-  ---------------------------------------- */
+  /* =========================
+     LOAD WEEKS
+  ========================= */
   useEffect(() => {
     setWeeks([]);
     setSelectedWeek(undefined);
@@ -104,9 +88,9 @@ export default function Meetings() {
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
-  /* ----------------------------------------
-     FETCH MEETINGS (SERVER FILTERED)
-  ---------------------------------------- */
+  /* =========================
+     FETCH MEETINGS
+  ========================= */
   const loadMeetings = async () => {
     setLoading(true);
 
@@ -124,18 +108,18 @@ export default function Meetings() {
       setTotal(data?.total ?? 0);
     } catch (err) {
       console.error("Error fetching meetings:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   useEffect(() => {
     loadMeetings();
   }, [page, repFilter, selectedMonth, selectedWeek]);
 
-  /* ----------------------------------------
-     LOCAL SEARCH (client-side)
-  ---------------------------------------- */
+  /* =========================
+     LOCAL SEARCH
+  ========================= */
   const filtered = meetings.filter((m) => {
     const q = query.toLowerCase();
     return (
@@ -150,9 +134,11 @@ export default function Meetings() {
     setOpenPanel(true);
   };
 
-  /* ----------------------------------------
-     RENDER
-  ---------------------------------------- */
+  const userFirstName = actor?.type === "USER" ? actor.firstName : undefined;
+
+  /* =========================
+     UI
+  ========================= */
   return (
     <div className="space-y-10 pb-20 px-6 md:px-10 lg:px-14">
       {/* HEADER */}
@@ -178,6 +164,7 @@ export default function Meetings() {
 
         {/* Filters */}
         <div className="flex items-center gap-3">
+          {/* ADMIN ONLY: Rep filter */}
           {isAdmin && (
             <Select
               value={repFilter || undefined}
@@ -218,8 +205,8 @@ export default function Meetings() {
             }}
           />
 
-          {/* Upload */}
-          {isUser && (
+          {/* USER ONLY: Upload */}
+          {isUser && actor && (
             <button
               onClick={() => setUploadOpen(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-2"
@@ -279,6 +266,7 @@ export default function Meetings() {
           </table>
         )}
       </div>
+
       <Pagination
         page={page}
         limit={limit}
@@ -295,15 +283,18 @@ export default function Meetings() {
         meeting={selected}
       />
 
-      {/* UPLOAD */}
-      <Modal open={uploadOpen} onClose={() => setUploadOpen(false)}>
-        <UploadMeetingsForm
-          onSuccess={() => {
-            setUploadOpen(false);
-            loadMeetings();
-          }}
-        />
-      </Modal>
+      {/* UPLOAD (USER ONLY) */}
+      {isUser && actor && (
+        <Modal open={uploadOpen} onClose={() => setUploadOpen(false)}>
+          <UploadMeetingsForm
+            repName={userFirstName}
+            onSuccess={() => {
+              setUploadOpen(false);
+              loadMeetings();
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

@@ -23,18 +23,21 @@ export default function SalesPipelinePage() {
   /* =========================
    * DRAFT FILTERS (UI ONLY)
    * ========================= */
-  const [draftYear, setDraftYear] = useState("2025");
   const [draftQuarter, setDraftQuarter] = useState<string | undefined>();
   const [draftSalesRepId, setDraftSalesRepId] = useState<string | undefined>();
   const [draftPreSalesRepId, setDraftPreSalesRepId] = useState<
     string | undefined
   >();
 
+  const currentYear = String(new Date().getFullYear());
+
+  const [draftYear, setDraftYear] = useState(currentYear);
+
   /* =========================
    * APPLIED FILTERS (API)
    * ========================= */
   const [appliedFilters, setAppliedFilters] = useState({
-    year: "2025",
+    year: currentYear,
     quarter: undefined as string | undefined,
     salesRepId: undefined as string | undefined,
     preSalesRepId: undefined as string | undefined,
@@ -126,6 +129,10 @@ export default function SalesPipelinePage() {
     loadPipeline();
   }, [appliedFilters]);
 
+  const yearOptions = Array.from(new Set([currentYear, "2025"])).sort(
+    (a, b) => Number(b) - Number(a)
+  );
+
   /* =========================
    * APPLY / RESET FILTERS
    * ========================= */
@@ -136,35 +143,27 @@ export default function SalesPipelinePage() {
       salesRepId: draftSalesRepId,
       preSalesRepId: draftPreSalesRepId,
     });
+
     setShowFilters(false);
   };
 
   const resetFilters = () => {
-    // UI state
-    setDraftYear("2025");
+    setDraftYear(currentYear);
     setDraftQuarter(undefined);
     setDraftPreSalesRepId(undefined);
 
-    if (actor?.type === "ADMIN") {
+    if (isAdmin) {
       setDraftSalesRepId(undefined);
-
-      setAppliedFilters({
-        year: "2025",
-        quarter: undefined,
-        salesRepId: undefined,
-        preSalesRepId: undefined,
-      });
-    } else {
-      // USER — no salesRepId ever
-      setDraftSalesRepId(undefined);
-
-      setAppliedFilters({
-        year: "2025",
-        quarter: undefined,
-        salesRepId: undefined, // backend infers from JWT
-        preSalesRepId: undefined,
-      });
     }
+
+    setAppliedFilters({
+      year: currentYear,
+      quarter: undefined,
+      salesRepId: undefined,
+      preSalesRepId: undefined,
+    });
+
+    setShowFilters(false);
   };
 
   /* =========================
@@ -206,10 +205,17 @@ export default function SalesPipelinePage() {
       {/* FILTER PANEL */}
       {showFilters && (
         <div className="flex flex-wrap gap-3 p-4 border rounded-xl bg-gray-50">
-          <Select
+          {/* <Select
             value={draftYear}
             onChange={(v) => v && setDraftYear(v)}
             options={["2025"]}
+            placeholder="Year"
+          /> */}
+
+          <Select
+            value={draftYear}
+            onChange={(v) => v && setDraftYear(v)}
+            options={yearOptions}
             placeholder="Year"
           />
 

@@ -12,7 +12,7 @@ import { useAuth } from "../hooks/useAuth";
 export default function OpportunitiesPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isUser } = useAuth();
 
   const [items, setItems] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,6 @@ export default function OpportunitiesPage() {
   /* =========================
    * DRAFT FILTERS (UI ONLY)
    * ========================= */
-  const [draftYear, setDraftYear] = useState("2025");
   const [draftQuarter, setDraftQuarter] = useState<string | undefined>();
   const [draftSalesRepId, setDraftSalesRepId] = useState<string | undefined>();
   const [draftPreSalesRepId, setDraftPreSalesRepId] = useState<
@@ -36,11 +35,17 @@ export default function OpportunitiesPage() {
   >();
   const [draftStageId, setDraftStageId] = useState<string | undefined>();
 
+  const currentYear = String(new Date().getFullYear());
+
+  const [draftYear, setDraftYear] = useState(currentYear);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
   /* =========================
    * APPLIED FILTERS (API)
    * ========================= */
   const [appliedFilters, setAppliedFilters] = useState({
-    year: "2025",
+    year: currentYear,
     quarter: undefined as string | undefined,
     salesRepId: undefined as string | undefined,
     preSalesRepId: undefined as string | undefined,
@@ -77,6 +82,12 @@ export default function OpportunitiesPage() {
       .then((res) => setDealStages(res.data?.items ?? []))
       .catch(() => setDealStages([]));
   }, []);
+
+  useEffect(() => {
+    if (location.state?.refresh) {
+      setRefreshKey((k) => k + 1);
+    }
+  }, [location.state?.refresh]);
 
   /* =========================
    * LOAD OPPORTUNITIES
@@ -120,7 +131,11 @@ export default function OpportunitiesPage() {
 
   useEffect(() => {
     loadOpportunities();
-  }, [appliedFilters, page]);
+  }, [appliedFilters, page, refreshKey]);
+
+  const yearOptions = Array.from(new Set([currentYear, "2025"])).sort(
+    (a, b) => Number(b) - Number(a)
+  );
 
   /* =========================
    * APPLY / RESET FILTERS
@@ -139,7 +154,7 @@ export default function OpportunitiesPage() {
   };
 
   const resetFilters = () => {
-    setDraftYear("2025");
+    setDraftYear(currentYear);
     setDraftQuarter(undefined);
     setDraftPreSalesRepId(undefined);
     setDraftStageId(undefined);
@@ -149,7 +164,7 @@ export default function OpportunitiesPage() {
     }
 
     setAppliedFilters({
-      year: "2025",
+      year: currentYear,
       quarter: undefined,
       salesRepId: undefined,
       preSalesRepId: undefined,
@@ -186,22 +201,34 @@ export default function OpportunitiesPage() {
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={() => navigate("/opportunities/new")}
-            className="px-4 py-2 border rounded-xl bg-white text-sm hover:bg-gray-50"
-          >
-            Add Opportunity
-          </button>
+          {/* ✅ USERS ONLY */}
+          {isUser && (
+            <button
+              onClick={() => navigate("/opportunities/new")}
+              className="px-4 py-2 border rounded-xl bg-white text-sm hover:bg-gray-50"
+            >
+              Add Opportunity
+            </button>
+          )}
 
-          <button
-            onClick={() => setShowUpload(true)}
-            className="px-5 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700"
-          >
-            ＋ Upload Pipeline
-          </button>
+          {/* ✅ USERS ONLY */}
+          {isUser && (
+            <button
+              onClick={() => setShowUpload(true)}
+              className="px-5 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700"
+            >
+              ＋ Upload Pipeline
+            </button>
+          )}
 
           {showUpload && (
-            <UploadPipelineModal onClose={() => setShowUpload(false)} />
+            <UploadPipelineModal
+              onClose={() => setShowUpload(false)}
+              onSuccess={() => {
+                setRefreshKey((k) => k + 1);
+                setShowUpload(false);
+              }}
+            />
           )}
 
           <button
@@ -216,10 +243,17 @@ export default function OpportunitiesPage() {
       {/* FILTER PANEL */}
       {showFilters && (
         <div className="flex flex-wrap gap-3 p-4 border rounded-xl bg-gray-50">
-          <Select
+          {/* <Select
             value={draftYear}
             onChange={(v) => v && setDraftYear(v)}
             options={["2025"]}
+            placeholder="Year"
+          /> */}
+
+          <Select
+            value={draftYear}
+            onChange={(v) => v && setDraftYear(v)}
+            options={yearOptions}
             placeholder="Year"
           />
 

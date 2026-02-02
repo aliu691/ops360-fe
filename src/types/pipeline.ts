@@ -1,3 +1,4 @@
+import { Customer } from "./customer-responses";
 import { User } from "./user";
 
 export interface StageTotalsItem {
@@ -78,6 +79,8 @@ export interface Opportunity {
    * ===================== */
   stageExcelId?: number | null;
   stageManualId?: number | null;
+
+  customer: Customer;
 
   displayValue: string | null;
   displayStage?: {
