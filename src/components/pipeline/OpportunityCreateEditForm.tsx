@@ -4,6 +4,9 @@ import { Textarea } from "../TextArea";
 import { API_ENDPOINTS } from "../../config/api";
 import { apiClient } from "../../config/apiClient";
 import { Opportunity } from "../../types/pipeline";
+import { Customer } from "../../types/customer-responses";
+import { SearchSelect } from "../SearchSelect";
+import { Select } from "../select";
 
 type User = {
   id: number;
@@ -24,17 +27,13 @@ export function DealForm({ mode, deal, saving, setSaving, onSaved }: Props) {
   const isEdit = mode === "edit";
 
   const [form, setForm] = useState({
-    organizationName: deal?.organizationName ?? "",
+    customerId: deal?.customer?.id ?? "",
     dealName: deal?.dealName ?? "",
     dealValue: deal?.displayValue ?? "",
     expectedCloseDate: deal ? deal.expectedCloseDate.slice(0, 10) : "",
     stageId: deal?.displayStage?.id ?? "",
     nextAction: deal?.nextAction ?? "",
-
-    salesOwnerId: deal?.salesOwner?.id ?? "",
     preSalesOwnerIds: deal?.preSalesOwners?.map((u) => u.id) ?? [],
-
-    // 🔴 RED FLAG
     hasRedFlag: Boolean(deal?.redFlag),
     redFlag: deal?.redFlag ?? "",
   });
@@ -43,28 +42,49 @@ export function DealForm({ mode, deal, saving, setSaving, onSaved }: Props) {
     { id: number; name: string; probability: number }[]
   >([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showPresalesDropdown, setShowPresalesDropdown] = useState(false);
 
   const savingRef = useRef(false);
 
-  const salesUsers = users.filter((u) => u.department === "SALES");
   const preSalesUsers = users.filter((u) => u.department === "PRE_SALES");
 
+  /* =========================
+   * LOAD LOOKUPS
+   * ========================= */
   useEffect(() => {
-    apiClient.get(API_ENDPOINTS.getDealStages()).then((res) => {
-      setStages(res.data.items ?? []);
-    });
+    apiClient
+      .get(API_ENDPOINTS.getDealStages())
+      .then((res) => setStages(res.data?.items ?? []));
 
-    apiClient.get(API_ENDPOINTS.getUsers()).then((res) => {
-      setUsers(res.data.items ?? []);
-    });
+    apiClient
+      .get(API_ENDPOINTS.getUsers())
+      .then((res) => setUsers(res.data?.items ?? []));
+
+    // 🔑 IMPORTANT: increase pagination so dropdown is populated
+    apiClient
+      .get(
+        API_ENDPOINTS.getCustomers({
+          page: 1,
+          limit: 500,
+        })
+      )
+      .then((res) => {
+        const customers = res.data.customers || res.data.items || [];
+        setCustomers(customers);
+      })
+
+      .catch(() => setCustomers([]));
   }, []);
 
-  const update = <K extends keyof typeof form>(key: K, value: any) => {
+  const update = (key: keyof typeof form, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  /* =========================
+   * SUBMIT
+   * ========================= */
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (savingRef.current) return;
@@ -75,17 +95,13 @@ export function DealForm({ mode, deal, saving, setSaving, onSaved }: Props) {
 
     try {
       const payload = {
-        organizationName: form.organizationName,
+        customerId: Number(form.customerId),
         dealName: form.dealName,
         dealValue: form.dealValue ? Number(form.dealValue) : null,
         expectedCloseDate: form.expectedCloseDate,
         stageId: form.stageId ? Number(form.stageId) : null,
         nextAction: form.nextAction || null,
-
-        salesOwnerId: Number(form.salesOwnerId),
         preSalesOwnerIds: form.preSalesOwnerIds,
-
-        // 🔴 RED FLAG LOGIC
         redFlag: form.hasRedFlag && form.redFlag ? form.redFlag : null,
       };
 
@@ -100,13 +116,16 @@ export function DealForm({ mode, deal, saving, setSaving, onSaved }: Props) {
       onSaved(res.data.deal);
     } catch (err) {
       console.error(err);
-      setError("Failed to save changes. Please try again.");
+      setError("Failed to save deal. Please try again.");
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
   };
 
+  /* =========================
+   * UI
+   * ========================= */
   return (
     <form onSubmit={submit} className="max-w-4xl space-y-6">
       <div className="bg-white rounded-xl border shadow-sm p-6 space-y-5">
@@ -114,10 +133,18 @@ export function DealForm({ mode, deal, saving, setSaving, onSaved }: Props) {
           {isEdit ? "Edit Deal" : "Create Deal"}
         </h3>
 
-        <Input
-          label="Organization Name"
-          value={form.organizationName}
-          onChange={(v) => update("organizationName", v)}
+        {/* CUSTOMER */}
+        <SearchSelect
+          value={form.customerId ? String(form.customerId) : undefined}
+          onChange={(v) => update("customerId", v ? Number(v) : "")}
+          options={customers.map((c) => String(c.id))}
+          placeholder="Select customer"
+          searchable
+          searchPlaceholder="Search customers..."
+          format={(id) => {
+            const c = customers.find((x) => String(x.id) === id);
+            return c ? c.name : id;
+          }}
         />
 
         <Input
@@ -133,37 +160,20 @@ export function DealForm({ mode, deal, saving, setSaving, onSaved }: Props) {
         />
 
         {/* STAGE */}
-        <div>
+        <div className="relative">
           <label className="block text-sm font-medium mb-1">Deal Stage</label>
-          <select
-            value={form.stageId}
-            onChange={(e) => update("stageId", Number(e.target.value))}
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-          >
-            <option value="">Select stage</option>
-            {stages.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.probability}%)
-              </option>
-            ))}
-          </select>
-        </div>
 
-        {/* SALES OWNER */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Sales Owner</label>
-          <select
-            value={form.salesOwnerId}
-            onChange={(e) => update("salesOwnerId", Number(e.target.value))}
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-          >
-            <option value="">Select sales owner</option>
-            {salesUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.firstName} {u.lastName}
-              </option>
-            ))}
-          </select>
+          <Select
+            fullWidth
+            value={form.stageId ? String(form.stageId) : undefined}
+            onChange={(v) => update("stageId", v ? Number(v) : "")}
+            options={stages.map((s) => String(s.id))}
+            placeholder="Select stage"
+            format={(id) => {
+              const stage = stages.find((s) => String(s.id) === id);
+              return stage ? `${stage.name} (${stage.probability}%)` : id;
+            }}
+          />
         </div>
 
         {/* PRESALES */}
@@ -228,7 +238,7 @@ export function DealForm({ mode, deal, saving, setSaving, onSaved }: Props) {
           onChange={(v) => update("nextAction", v)}
         />
 
-        {/* 🔴 RED FLAG */}
+        {/* RED FLAG */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-medium">
             <input

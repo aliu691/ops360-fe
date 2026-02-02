@@ -1,17 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { API_ENDPOINTS } from "../../config/api";
 import { apiClient } from "../../config/apiClient";
 import { Input } from "../Input";
 import { Info } from "lucide-react";
-
-type User = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  department: "SALES" | "PRE_SALES";
-};
+import { useAuth } from "../../hooks/useAuth";
 
 export function UploadPipelineModal({
   onClose,
@@ -22,30 +16,26 @@ export function UploadPipelineModal({
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
+  const { actor } = useAuth();
 
-  const [year, setYear] = useState(2025);
-  const [salesOwnerId, setSalesOwnerId] = useState<number | "">("");
+  const currentYear = new Date().getFullYear();
+
+  const [year, setYear] = useState(currentYear);
   const [file, setFile] = useState<File | null>(null);
 
-  const [users, setUsers] = useState<User[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /* -----------------------------
-   * Load users
-   ------------------------------*/
-  useEffect(() => {
-    apiClient
-      .get(API_ENDPOINTS.getUsers())
-      .then((res) => setUsers(res.data?.items ?? []))
-      .catch(() => setUsers([]));
-  }, []);
+  /* --------------------------------
+     SAFETY: USERS ONLY
+  -------------------------------- */
+  if (!actor || actor.type !== "USER") {
+    return null;
+  }
 
-  const salesReps = users.filter((u) => u.department === "SALES");
-
-  /* -----------------------------
-   * Upload handler
-   ------------------------------*/
+  /* --------------------------------
+     Upload handler
+  -------------------------------- */
   const upload = async () => {
     if (!file) return;
 
@@ -56,10 +46,11 @@ export function UploadPipelineModal({
       const formData = new FormData();
       formData.append("file", file);
 
+      // ✅ Explicitly pass salesOwnerId (required by backend)
       await apiClient.post(
         API_ENDPOINTS.uploadPipeline({
           year,
-          salesOwnerId: salesOwnerId || undefined,
+          salesOwnerId: actor.id,
         }),
         formData,
         {
@@ -68,7 +59,6 @@ export function UploadPipelineModal({
       );
 
       toast.success("Pipeline uploaded successfully");
-
       onSuccess?.(true);
 
       setTimeout(() => {
@@ -93,9 +83,7 @@ export function UploadPipelineModal({
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl">
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div className="font-semibold flex items-center gap-2">
-            Upload Pipeline
-          </div>
+          <div className="font-semibold">Upload Pipeline</div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-xl"
@@ -114,29 +102,10 @@ export function UploadPipelineModal({
             onChange={(v) => setYear(Number(v))}
           />
 
-          {/* SALES OWNER */}
-          <div>
-            <label className="text-sm text-gray-500">Deal Owner</label>
-            <select
-              value={salesOwnerId}
-              onChange={(e) =>
-                setSalesOwnerId(e.target.value ? Number(e.target.value) : "")
-              }
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-            >
-              <option value="">Select deal owner</option>
-              {salesReps.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.firstName} {u.lastName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* FILE UPLOAD */}
+          {/* FILE */}
           <div
             onClick={() => fileRef.current?.click()}
-            className="mt-4 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50"
+            className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50"
           >
             <input
               ref={fileRef}
@@ -148,10 +117,10 @@ export function UploadPipelineModal({
 
             <div className="text-sm">
               <span className="text-blue-600 font-medium">Click to browse</span>{" "}
-              or drag and drop your Excel file here
+              or drag and drop your Excel file
             </div>
             <div className="text-xs text-gray-400 mt-1">
-              Supported formats: .xlsx, .xls (Max 10MB)
+              Supported formats: .xlsx, .xls
             </div>
 
             {file && (
@@ -167,12 +136,12 @@ export function UploadPipelineModal({
             </div>
           )}
 
-          {/* Info Bar */}
+          {/* INFO */}
           <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-3 py-3 text-sm text-gray-600">
-            <Info size={18} className="text-gray-500" />
+            <Info size={18} />
             Need the correct format?{" "}
             <a
-              href="https://docs.google.com/spreadsheets/d/1TKZvrPCkbY4I1qjJDgTAYyJgP49QzH_HyEMwy5URYf0/edit?usp=sharing"
+              href="https://docs.google.com/spreadsheets/d/1TKZvrPCkbY4I1qjJDgTAYyJgP49QzH_HyEMwy5URYf0/edit"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 ml-1 underline"
@@ -197,7 +166,7 @@ export function UploadPipelineModal({
             disabled={!file || uploading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50"
           >
-            {uploading ? "Uploading…" : "Upload and Import"}
+            {uploading ? "Uploading…" : "Upload & Import"}
           </button>
         </div>
       </div>

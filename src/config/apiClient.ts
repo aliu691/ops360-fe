@@ -5,7 +5,7 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("admin_token");
+  const token = localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -15,10 +15,21 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem("admin_token");
+    const status = err.response?.status;
+    const url = err.config?.url ?? "";
+
+    const isAuthEndpoint =
+      url.includes("/auth/login") || url.includes("/auth/users/login");
+
+    // 🔐 Only force logout on 401s outside auth
+    if (status === 401 && !isAuthEndpoint) {
+      console.warn("🔒 401 outside auth — logging out");
+
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("actor");
       window.location.href = "/login";
     }
+
     return Promise.reject(err);
   }
 );

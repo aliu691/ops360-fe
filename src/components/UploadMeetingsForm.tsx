@@ -11,17 +11,20 @@ import {
   getCurrentWeek,
 } from "../utils/dateUtils";
 import { useUsers } from "../hooks/useUsers";
+import { useAuth } from "../hooks/useAuth";
 
 interface WeekOption {
   week: number;
   label: string;
   startDate: string;
   endDate: string;
-  hasData: boolean; // ✅ NEW
+  hasData: boolean;
 }
 
 export default function UploadMeetingsForm({ onSuccess }: any) {
-  const [rep, setRep] = useState("");
+  const { actor, isAdmin, isUser } = useAuth();
+
+  const [rep, setRep] = useState<string>(""); // repName (firstName)
   const [file, setFile] = useState<File | null>(null);
 
   const [months, setMonths] = useState<string[]>([]);
@@ -37,21 +40,26 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
   const currentWeek = getCurrentWeek();
 
   const { users, loading: usersLoading } = useUsers();
-
-  const [selectedRep, setSelectedRep] = useState<string | undefined>();
-
   const salesUsers = users.filter((u) => u.department === "SALES");
 
+  /* =====================================================
+     🔐 SET REP BASED ON ROLE
+  ===================================================== */
   useEffect(() => {
-    if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].firstName);
+    // USER → force rep from JWT
+    if (isUser && actor?.type === "USER") {
+      setRep(actor.firstName);
     }
-  }, [users, selectedRep]);
 
-  /* --------------------------------
+    // ADMIN → default to first sales rep
+    if (isAdmin && !rep && salesUsers.length > 0) {
+      setRep(salesUsers[0].firstName);
+    }
+  }, [actor, isAdmin, isUser, salesUsers, rep]);
+
+  /* =====================================================
      LOAD CALENDAR MONTHS
-     Auto-select current month
-  -------------------------------- */
+  ===================================================== */
   useEffect(() => {
     apiClient
       .get(API_ENDPOINTS.getCalendarMonths())
@@ -66,17 +74,16 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
       .catch(() => setMonths([]));
   }, []);
 
-  /* --------------------------------
-     LOAD CALENDAR WEEKS
-     ❌ Filter out weeks that already have data
-  -------------------------------- */
+  /* =====================================================
+     LOAD CALENDAR WEEKS (PER USER)
+  ===================================================== */
   useEffect(() => {
     setWeeks([]);
     setSelectedWeek("");
 
-    if (!selectedMonth || !selectedRep) return;
+    if (!selectedMonth || !rep) return;
 
-    const user = users.find((u) => u.firstName === selectedRep);
+    const user = users.find((u) => u.firstName === rep);
     if (!user) return;
 
     apiClient
@@ -84,26 +91,26 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
       .then((res) => {
         const allWeeks: WeekOption[] = res.data?.items ?? [];
 
-        // ✅ Only block weeks THIS USER already uploaded
+        // ✅ block weeks this rep already uploaded
         const availableWeeks = allWeeks.filter((w) => !w.hasData);
 
         setWeeks(availableWeeks);
 
-        const currentWeek = getCurrentWeek();
-
-        // ✅ Auto-select current week if available
         const match = availableWeeks.find((w) => w.week === currentWeek);
         if (match) {
           setSelectedWeek(match.week);
         }
       })
       .catch(() => setWeeks([]));
-  }, [selectedMonth, selectedRep, users]);
+  }, [selectedMonth, rep, users]);
 
   const handleFile = (e: any) => {
     setFile(e.target.files[0]);
   };
 
+  /* =====================================================
+     SUBMIT
+  ===================================================== */
   const handleSubmit = async () => {
     if (!rep || !file || !selectedMonth || !selectedWeek) return;
 
@@ -123,46 +130,47 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // ✅ FIRE TOAST HERE (source of truth)
       toast.success("Meetings uploaded successfully");
 
-      // ✅ close modal / notify parent ONCE
       onSuccess?.(true);
 
-      // ✅ allow toast to render before navigation
       setTimeout(() => {
         navigate("/meetings");
       }, 400);
     } catch (err: any) {
       const message = err?.response?.data?.message || "Upload failed";
-
       toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
+  /* =====================================================
+     UI
+  ===================================================== */
   return (
     <div className="space-y-6">
-      {/* Representative */}
-      <div>
-        <label className="text-sm font-semibold text-gray-700">
-          Representative
-        </label>
-        <select
-          value={rep}
-          onChange={(e) => setRep(e.target.value)}
-          disabled={usersLoading}
-          className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
-        >
-          <option value="">Select a representative...</option>
-          {salesUsers.map((u) => (
-            <option key={u.id} value={u.firstName}>
-              {u.firstName}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* ADMIN ONLY: Representative */}
+      {isAdmin && (
+        <div>
+          <label className="text-sm font-semibold text-gray-700">
+            Representative
+          </label>
+          <select
+            value={rep}
+            onChange={(e) => setRep(e.target.value)}
+            disabled={usersLoading}
+            className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
+          >
+            <option value="">Select a representative...</option>
+            {salesUsers.map((u) => (
+              <option key={u.id} value={u.firstName}>
+                {u.firstName}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Reporting Month */}
       <div>
@@ -240,15 +248,14 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         )}
       </div>
 
-      {/* Info Bar */}
+      {/* Info */}
       <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-3 py-3 text-sm text-gray-600">
-        <Info size={18} className="text-gray-500" />
+        <Info size={18} />
         Need the correct format?{" "}
         <a
-          href="https://docs.google.com/spreadsheets/d/1hJVXp9ZA8zoUuz9BXFvtR4PS70pdectd0uj3bZmbGao/edit?usp=sharing"
+          href="https://docs.google.com/spreadsheets/d/1hJVXp9ZA8zoUuz9BXFvtR4PS70pdectd0uj3bZmbGao/edit"
           target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 ml-1 underline"
+          className="text-blue-600 underline"
         >
           Download Template
         </a>

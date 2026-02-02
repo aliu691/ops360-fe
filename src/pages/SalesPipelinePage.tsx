@@ -6,6 +6,7 @@ import StageDealsModal from "../components/pipeline/StageDealsModal";
 import { Select } from "../components/select";
 import { API_ENDPOINTS } from "../config/api";
 import { apiClient } from "../config/apiClient";
+import { useAuth } from "../hooks/useAuth";
 import { PipelineResponse, PipelineSummary } from "../types/pipeline";
 
 export default function SalesPipelinePage() {
@@ -22,18 +23,21 @@ export default function SalesPipelinePage() {
   /* =========================
    * DRAFT FILTERS (UI ONLY)
    * ========================= */
-  const [draftYear, setDraftYear] = useState("2025");
   const [draftQuarter, setDraftQuarter] = useState<string | undefined>();
   const [draftSalesRepId, setDraftSalesRepId] = useState<string | undefined>();
   const [draftPreSalesRepId, setDraftPreSalesRepId] = useState<
     string | undefined
   >();
 
+  const currentYear = String(new Date().getFullYear());
+
+  const [draftYear, setDraftYear] = useState(currentYear);
+
   /* =========================
    * APPLIED FILTERS (API)
    * ========================= */
   const [appliedFilters, setAppliedFilters] = useState({
-    year: "2025",
+    year: currentYear,
     quarter: undefined as string | undefined,
     salesRepId: undefined as string | undefined,
     preSalesRepId: undefined as string | undefined,
@@ -66,6 +70,25 @@ export default function SalesPipelinePage() {
 
   const salesReps = users.filter((u) => u.department === "SALES");
   const preSalesReps = users.filter((u) => u.department === "PRE_SALES");
+  const { actor, isAdmin, isUser } = useAuth();
+
+  const effectiveFilters = {
+    year: Number(appliedFilters.year),
+    quarter: appliedFilters.quarter
+      ? Number(appliedFilters.quarter)
+      : undefined,
+
+    // 🔒 Sales rep filter: ADMIN ONLY
+    salesOwnerId:
+      actor?.type === "ADMIN" && appliedFilters.salesRepId
+        ? Number(appliedFilters.salesRepId)
+        : undefined,
+
+    // ✅ Presales filter: USER + ADMIN
+    preSalesOwnerIds: appliedFilters.preSalesRepId
+      ? [Number(appliedFilters.preSalesRepId)]
+      : undefined,
+  };
 
   /* =========================
    * LOAD PIPELINE (APPLIED ONLY)
@@ -76,16 +99,7 @@ export default function SalesPipelinePage() {
       const url = API_ENDPOINTS.getPipelineDeals({
         page,
         limit,
-        year: Number(appliedFilters.year),
-        quarter: appliedFilters.quarter
-          ? Number(appliedFilters.quarter)
-          : undefined,
-        salesOwnerId: appliedFilters.salesRepId
-          ? Number(appliedFilters.salesRepId)
-          : undefined,
-        preSalesOwnerIds: appliedFilters.preSalesRepId
-          ? [Number(appliedFilters.preSalesRepId)]
-          : undefined,
+        ...effectiveFilters,
       });
 
       const res = await apiClient.get(url);
@@ -115,6 +129,10 @@ export default function SalesPipelinePage() {
     loadPipeline();
   }, [appliedFilters]);
 
+  const yearOptions = Array.from(new Set([currentYear, "2025"])).sort(
+    (a, b) => Number(b) - Number(a)
+  );
+
   /* =========================
    * APPLY / RESET FILTERS
    * ========================= */
@@ -125,21 +143,27 @@ export default function SalesPipelinePage() {
       salesRepId: draftSalesRepId,
       preSalesRepId: draftPreSalesRepId,
     });
+
     setShowFilters(false);
   };
 
   const resetFilters = () => {
-    setDraftYear("2025");
+    setDraftYear(currentYear);
     setDraftQuarter(undefined);
-    setDraftSalesRepId(undefined);
     setDraftPreSalesRepId(undefined);
 
+    if (isAdmin) {
+      setDraftSalesRepId(undefined);
+    }
+
     setAppliedFilters({
-      year: "2025",
+      year: currentYear,
       quarter: undefined,
       salesRepId: undefined,
       preSalesRepId: undefined,
     });
+
+    setShowFilters(false);
   };
 
   /* =========================
@@ -181,10 +205,17 @@ export default function SalesPipelinePage() {
       {/* FILTER PANEL */}
       {showFilters && (
         <div className="flex flex-wrap gap-3 p-4 border rounded-xl bg-gray-50">
-          <Select
+          {/* <Select
             value={draftYear}
             onChange={(v) => v && setDraftYear(v)}
             options={["2025"]}
+            placeholder="Year"
+          /> */}
+
+          <Select
+            value={draftYear}
+            onChange={(v) => v && setDraftYear(v)}
+            options={yearOptions}
             placeholder="Year"
           />
 
@@ -196,16 +227,18 @@ export default function SalesPipelinePage() {
             format={(q) => `Q${q}`}
           />
 
-          <Select
-            value={draftSalesRepId}
-            onChange={setDraftSalesRepId}
-            options={salesReps.map((u) => String(u.id))}
-            placeholder="All Sales Reps"
-            format={(id) => {
-              const u = salesReps.find((x) => String(x.id) === id);
-              return u ? `${u.firstName} ${u.lastName}` : id;
-            }}
-          />
+          {isAdmin && (
+            <Select
+              value={draftSalesRepId}
+              onChange={setDraftSalesRepId}
+              options={salesReps.map((u) => String(u.id))}
+              placeholder="All Sales Reps"
+              format={(id) => {
+                const u = salesReps.find((x) => String(x.id) === id);
+                return u ? `${u.firstName} ${u.lastName}` : id;
+              }}
+            />
+          )}
 
           <Select
             value={draftPreSalesRepId}

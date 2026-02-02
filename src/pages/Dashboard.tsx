@@ -16,6 +16,7 @@ import {
   getCurrentMonth,
   getCurrentWeek,
 } from "../utils/dateUtils";
+import { useAuth } from "../hooks/useAuth";
 
 /* ---------------------------------------------
    TYPES
@@ -122,11 +123,19 @@ export default function Dashboard() {
 
   const salesUsers = users.filter((u) => u.department === "SALES");
 
+  const { actor, isUser, isAdmin } = useAuth();
+
   useEffect(() => {
-    if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].firstName);
+    if (actor?.type === "USER" && actor.firstName) {
+      setSelectedRep(actor.firstName);
     }
-  }, [users, selectedRep]);
+  }, [actor]);
+
+  useEffect(() => {
+    if (actor?.type === "ADMIN" && !selectedRep && salesUsers.length > 0) {
+      setSelectedRep(salesUsers[0].firstName);
+    }
+  }, [actor, salesUsers]);
 
   useEffect(() => {
     apiClient
@@ -172,21 +181,24 @@ export default function Dashboard() {
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
+  const effectiveRepName =
+    actor?.type === "USER" ? actor.firstName : selectedRep;
+
   /* ---------------------------------------------------
    FETCH KPI DATA
 ---------------------------------------------------*/
   useEffect(() => {
-    if (!selectedRep) return;
+    if (!actor) return;
+    if (!effectiveRepName) return;
 
     setLoading(true);
 
     const params: Record<string, string | number> = {};
-
     if (selectedMonth) params.month = selectedMonth;
     if (selectedWeek !== undefined) params.week = selectedWeek;
 
     apiClient
-      .get(API_ENDPOINTS.getKpi(selectedRep, params))
+      .get(API_ENDPOINTS.getKpi(effectiveRepName, params))
       .then((res) => {
         const data = res.data ?? {};
         setKpi({
@@ -203,7 +215,7 @@ export default function Dashboard() {
         setKpi(null);
       })
       .finally(() => setLoading(false));
-  }, [selectedRep, selectedMonth, selectedWeek]);
+  }, [actor, effectiveRepName, selectedMonth, selectedWeek]);
 
   const scoreCardBorder =
     normalizeStatus(kpi?.status) === "GOOD"
@@ -234,25 +246,28 @@ export default function Dashboard() {
         {/* Right Filters */}
         <div className="flex items-center gap-4">
           {/* Rep Select */}
-          <div className="relative">
-            <select
-              value={selectedRep}
-              onChange={(e) => setSelectedRep(e.target.value)}
-              disabled={usersLoading}
-              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
-            >
-              {salesUsers.map((u) => (
-                <option key={u.id} value={u.firstName}>
-                  {u.firstName}
-                </option>
-              ))}
-            </select>
+          {isAdmin && (
+            <div className="relative">
+              <select
+                value={selectedRep}
+                onChange={(e) => setSelectedRep(e.target.value)}
+                disabled={usersLoading}
+                className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
+              >
+                {salesUsers.map((u) => (
+                  <option key={u.id} value={u.firstName}>
+                    {u.firstName}
+                  </option>
+                ))}
+              </select>
 
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          </div>
+              <ChevronDown
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              />
+            </div>
+          )}
+
           <Select
             value={selectedMonth}
             onChange={setSelectedMonth}

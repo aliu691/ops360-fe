@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
    * AUTH
    * ========================= */
   login: () => `/auth/login`,
+  loginUser: () => `/auth/users/login`,
   requestPasswordReset: () => `/auth/request-password-reset`,
   resetPassword: () => `/auth/reset-password`,
 
