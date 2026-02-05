@@ -11,15 +11,14 @@ export default function SetPassword() {
   const [params] = useSearchParams();
 
   const token = params.get("token");
-  const type = params.get("type"); // "invite" | "reset"
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
 
-  // 🚨 Invalid link guard
-  if (!token || !type) {
+  // 🚨 Guard — token ONLY
+  if (!token) {
     return (
       <AuthLayout>
         <div className="text-gray-500 text-sm">Invalid or expired link</div>
@@ -41,17 +40,11 @@ export default function SetPassword() {
     try {
       setLoading(true);
 
-      if (type === "invite") {
-        await apiClient.post(API_ENDPOINTS.acceptInvite(), {
-          token,
-          password,
-        });
-      } else {
-        await apiClient.post(API_ENDPOINTS.resetPassword(), {
-          token,
-          password,
-        });
-      }
+      // ✅ SINGLE SOURCE OF TRUTH
+      await apiClient.post(API_ENDPOINTS.resetPassword(), {
+        token,
+        password,
+      });
 
       toast.success("Password set successfully");
       navigate("/login");
@@ -62,36 +55,24 @@ export default function SetPassword() {
     }
   };
 
-  const isInvite = type === "invite";
-
-  const copy = {
-    title: isInvite ? "Set your password" : "Reset your password",
-    subtitle: isInvite
-      ? "Secure your account to access the Ops360 workspace."
-      : "Create a new password to regain access to your account.",
-    passwordLabel: isInvite ? "Create Password" : "New Password",
-    button: isInvite ? "Set Password and Log In" : "Reset Password",
-  };
-
   return (
     <AuthLayout>
       <div className="w-[420px] bg-white rounded-xl shadow-md p-8 space-y-6">
-        {/* ICON */}
         <div className="flex justify-center">
           <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
             <Lock className="text-blue-600" />
           </div>
         </div>
 
-        {/* TITLE */}
         <div className="text-center">
-          <h1 className="text-xl font-semibold">{copy.title}</h1>
-          <p className="text-sm text-gray-500 mt-1">{copy.subtitle}</p>
+          <h1 className="text-xl font-semibold">Set your password</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Choose a secure password to continue.
+          </p>
         </div>
 
-        {/* PASSWORD */}
         <div>
-          <label className="text-sm font-medium">{copy.passwordLabel}</label>
+          <label className="text-sm font-medium">Password</label>
           <div className="relative mt-1">
             <input
               type={show ? "text" : "password"}
@@ -109,7 +90,6 @@ export default function SetPassword() {
           </div>
         </div>
 
-        {/* CONFIRM */}
         <div>
           <label className="text-sm font-medium">Confirm Password</label>
           <input
@@ -120,33 +100,13 @@ export default function SetPassword() {
           />
         </div>
 
-        {/* REQUIREMENTS */}
-        <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-2">
-          <p className="font-medium text-gray-600">Password requirements</p>
-          <ul className="text-gray-500 space-y-1">
-            <li>• At least 8 characters</li>
-            <li>• One uppercase letter</li>
-            <li>• One number</li>
-            <li>• One special character</li>
-          </ul>
-        </div>
-
-        {/* SUBMIT */}
         <button
           onClick={submit}
           disabled={loading}
-          className="w-full h-11 rounded-md bg-blue-600 text-white font-medium flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50"
+          className="w-full h-11 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? "Please wait..." : copy.button}
+          {loading ? "Please wait..." : "Set Password"}
         </button>
-
-        {/* FOOT NOTE */}
-        <p className="text-sm text-center text-gray-500">
-          Need help?{" "}
-          <a href="#" className="text-blue-600 hover:underline">
-            Contact Support
-          </a>
-        </p>
       </div>
     </AuthLayout>
   );

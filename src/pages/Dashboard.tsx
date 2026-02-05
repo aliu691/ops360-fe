@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "../config/apiClient";
-import { API_ENDPOINTS } from "../config/api";
+import { API_ENDPOINTS, KpiFilters } from "../config/api";
 import { useUsers } from "../hooks/useUsers";
 
 import {
@@ -187,18 +187,24 @@ export default function Dashboard() {
   /* ---------------------------------------------------
    FETCH KPI DATA
 ---------------------------------------------------*/
+
   useEffect(() => {
     if (!actor) return;
-    if (!effectiveRepName) return;
+    if (isAdmin && !effectiveRepName) return;
 
     setLoading(true);
 
-    const params: Record<string, string | number> = {};
-    if (selectedMonth) params.month = selectedMonth;
-    if (selectedWeek !== undefined) params.week = selectedWeek;
+    const filters: KpiFilters = {
+      month: selectedMonth,
+      week: selectedWeek !== undefined ? String(selectedWeek) : undefined,
+    };
+
+    const endpoint = isUser
+      ? API_ENDPOINTS.getMyKpi(filters)
+      : API_ENDPOINTS.getKpiByRep(effectiveRepName!, filters);
 
     apiClient
-      .get(API_ENDPOINTS.getKpi(effectiveRepName, params))
+      .get(endpoint)
       .then((res) => {
         const data = res.data ?? {};
         setKpi({
@@ -215,7 +221,7 @@ export default function Dashboard() {
         setKpi(null);
       })
       .finally(() => setLoading(false));
-  }, [actor, effectiveRepName, selectedMonth, selectedWeek]);
+  }, [actor, isUser, isAdmin, effectiveRepName, selectedMonth, selectedWeek]);
 
   const scoreCardBorder =
     normalizeStatus(kpi?.status) === "GOOD"

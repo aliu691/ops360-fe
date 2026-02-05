@@ -28,90 +28,24 @@ export function useAuth() {
   const login = async (email: string, password: string) => {
     console.log("🔐 LOGIN START", { email });
 
-    /* ============================
-       1️⃣ TRY ADMIN LOGIN
-    ============================ */
     try {
-      console.log("➡️ Trying ADMIN login");
-
-      const adminRes = await apiClient.post(API_ENDPOINTS.login(), {
+      const res = await apiClient.post(API_ENDPOINTS.login(), {
         email,
         password,
       });
 
-      console.log("✅ ADMIN LOGIN SUCCESS", adminRes.data);
+      const { accessToken, actor } = res.data;
 
-      localStorage.setItem("access_token", adminRes.data.accessToken);
-      localStorage.setItem(
-        "actor",
-        JSON.stringify({
-          type: "ADMIN",
-          ...adminRes.data.admin,
-        })
-      );
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("actor", JSON.stringify(actor));
 
-      setActor({
-        type: "ADMIN",
-        ...adminRes.data.admin,
-      });
+      setActor(actor);
 
-      console.log("🎉 Logged in as ADMIN");
-      return;
+      console.log("🎉 Logged in as", actor.type);
     } catch (err: any) {
-      console.error("❌ ADMIN LOGIN FAILED");
-
       if (axios.isAxiosError(err)) {
-        console.error("ADMIN ERROR STATUS:", err.response?.status);
-        console.error("ADMIN ERROR DATA:", err.response?.data);
+        console.error("LOGIN ERROR:", err.response?.data);
       }
-
-      // swallow ONLY 401
-      if (
-        axios.isAxiosError(err) &&
-        err.response &&
-        err.response.status !== 401
-      ) {
-        throw err;
-      }
-    }
-
-    /* ============================
-       2️⃣ TRY USER LOGIN
-    ============================ */
-    try {
-      console.log("➡️ Trying USER login");
-
-      const userRes = await apiClient.post(API_ENDPOINTS.loginUser(), {
-        email,
-        password,
-      });
-
-      console.log("✅ USER LOGIN SUCCESS", userRes.data);
-
-      localStorage.setItem("access_token", userRes.data.accessToken);
-      localStorage.setItem(
-        "actor",
-        JSON.stringify({
-          type: "USER",
-          ...userRes.data.user,
-        })
-      );
-
-      setActor({
-        type: "USER",
-        ...userRes.data.user,
-      });
-
-      console.log("🎉 Logged in as USER");
-      return;
-    } catch (err: any) {
-      console.error("❌ USER LOGIN FAILED");
-
-      if (axios.isAxiosError(err)) {
-        console.error("USER ERROR STATUS:", err.response?.status);
-        console.error("USER ERROR DATA:", err.response?.data);
-      }
-
       throw err;
     }
   };

@@ -11,7 +11,6 @@ export const API_ENDPOINTS = {
    * AUTH
    * ========================= */
   login: () => `/auth/login`,
-  loginUser: () => `/auth/users/login`,
   requestPasswordReset: () => `/auth/request-password-reset`,
   resetPassword: () => `/auth/reset-password`,
 
@@ -26,10 +25,8 @@ export const API_ENDPOINTS = {
   /* =========================
    * UPLOADS
    * ========================= */
-  uploadMeetings: (repName: string, month: string, week: number) =>
-    `/upload/meetings?repName=${encodeURIComponent(
-      repName
-    )}&month=${encodeURIComponent(month)}&week=${week}`,
+  uploadMeetings: (salesOwnerId: number, month: string, week: number) =>
+    `/upload/meetings?salesOwnerId=${salesOwnerId}&month=${month}&week=${week}`,
 
   uploadPipeline: (params: { year: number; salesOwnerId?: number }) => {
     const query = new URLSearchParams();
@@ -68,22 +65,29 @@ export const API_ENDPOINTS = {
   /* =========================
    * KPI
    * ========================= */
-  getKpi: (
-    repName: string,
-    filters?: {
-      month?: string;
-      week?: string;
-      quarter?: string;
-    }
-  ) => {
+
+  // USER – self KPI
+  getMyKpi: (filters?: KpiFilters) => {
     const params = new URLSearchParams();
 
     if (filters?.month) params.append("month", filters.month);
     if (filters?.week) params.append("week", filters.week);
     if (filters?.quarter) params.append("quarter", filters.quarter);
 
-    const query = params.toString();
-    return `/kpi/${encodeURIComponent(repName)}${query ? `?${query}` : ""}`;
+    const qs = params.toString();
+    return `/kpi/me${qs ? `?${qs}` : ""}`;
+  },
+
+  // ADMIN / SUPER_ADMIN – KPI by rep
+  getKpiByRep: (repName: string, filters?: KpiFilters) => {
+    const params = new URLSearchParams();
+
+    if (filters?.month) params.append("month", filters.month);
+    if (filters?.week) params.append("week", filters.week);
+    if (filters?.quarter) params.append("quarter", filters.quarter);
+
+    const qs = params.toString();
+    return `/kpi/${encodeURIComponent(repName)}${qs ? `?${qs}` : ""}`;
   },
 
   /* =========================
