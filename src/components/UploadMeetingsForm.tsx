@@ -24,7 +24,8 @@ interface WeekOption {
 export default function UploadMeetingsForm({ onSuccess }: any) {
   const { actor, isAdmin, isUser } = useAuth();
 
-  const [rep, setRep] = useState<string>(""); // repName (firstName)
+  const [rep, setRep] = useState<string>(""); // display only
+  const [repId, setRepId] = useState<number | null>(null); // ✅ source of truth
   const [file, setFile] = useState<File | null>(null);
 
   const [months, setMonths] = useState<string[]>([]);
@@ -43,19 +44,23 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
   const salesUsers = users.filter((u) => u.department === "SALES");
 
   /* =====================================================
-     🔐 SET REP BASED ON ROLE
+     🔐 SET REP + REP ID BASED ON ROLE
   ===================================================== */
   useEffect(() => {
-    // USER → force rep from JWT
+    // USER → always self
     if (isUser && actor?.type === "USER") {
       setRep(actor.firstName);
+      setRepId(actor.id);
+      return;
     }
 
     // ADMIN → default to first sales rep
-    if (isAdmin && !rep && salesUsers.length > 0) {
-      setRep(salesUsers[0].firstName);
+    if (isAdmin && salesUsers.length > 0) {
+      const first = salesUsers[0];
+      setRep(first.firstName);
+      setRepId(first.id);
     }
-  }, [actor, isAdmin, isUser, salesUsers, rep]);
+  }, [actor, isAdmin, isUser, salesUsers]);
 
   /* =====================================================
      LOAD CALENDAR MONTHS
@@ -78,31 +83,27 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
      LOAD CALENDAR WEEKS (PER USER)
   ===================================================== */
   useEffect(() => {
+    if (!selectedMonth || !repId) return;
+
     setWeeks([]);
     setSelectedWeek("");
 
-    if (!selectedMonth || !rep) return;
-
-    const user = users.find((u) => u.firstName === rep);
-    if (!user) return;
-
     apiClient
-      .get(API_ENDPOINTS.getCalendarWeeks(selectedMonth, user.id))
+      .get(API_ENDPOINTS.getCalendarWeeks(selectedMonth, repId))
       .then((res) => {
         const allWeeks: WeekOption[] = res.data?.items ?? [];
-
-        // ✅ block weeks this rep already uploaded
         const availableWeeks = allWeeks.filter((w) => !w.hasData);
 
         setWeeks(availableWeeks);
 
         const match = availableWeeks.find((w) => w.week === currentWeek);
-        if (match) {
-          setSelectedWeek(match.week);
-        }
+        if (match) setSelectedWeek(match.week);
       })
-      .catch(() => setWeeks([]));
-  }, [selectedMonth, rep, users]);
+      .catch(() => {
+        setWeeks([]);
+        setSelectedWeek("");
+      });
+  }, [selectedMonth, repId]);
 
   const handleFile = (e: any) => {
     setFile(e.target.files[0]);
@@ -112,7 +113,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
      SUBMIT
   ===================================================== */
   const handleSubmit = async () => {
-    if (!rep || !file || !selectedMonth || !selectedWeek) return;
+    if (!file || !selectedMonth || !selectedWeek || !repId) return;
 
     setLoading(true);
 
@@ -121,7 +122,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
 
     try {
       const url = API_ENDPOINTS.uploadMeetings(
-        rep,
+        repId!,
         selectedMonth,
         Number(selectedWeek)
       );
@@ -131,26 +132,34 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
       });
 
       toast.success("Meetings uploaded successfully");
-
       onSuccess?.(true);
 
       setTimeout(() => {
         navigate("/meetings");
       }, 400);
     } catch (err: any) {
-      const message = err?.response?.data?.message || "Upload failed";
-      toast.error(message);
+      toast.error(err?.response?.data?.message || "Upload failed");
     } finally {
       setLoading(false);
     }
   };
+
+  console.log({
+    rep,
+    repId,
+    selectedMonth,
+    selectedWeek,
+    weeksLength: weeks.length,
+    file: !!file,
+    isDisabled: loading || !file || !repId || !selectedMonth || !selectedWeek,
+  });
 
   /* =====================================================
      UI
   ===================================================== */
   return (
     <div className="space-y-6">
-      {/* ADMIN ONLY: Representative */}
+      {/* ADMIN ONLY */}
       {isAdmin && (
         <div>
           <label className="text-sm font-semibold text-gray-700">
@@ -158,8 +167,16 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
           </label>
           <select
             value={rep}
-            onChange={(e) => setRep(e.target.value)}
             disabled={usersLoading}
+            onChange={(e) => {
+              const user = salesUsers.find(
+                (u) => u.firstName === e.target.value
+              );
+              if (!user) return;
+
+              setRep(user.firstName);
+              setRepId(user.id);
+            }}
             className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
           >
             <option value="">Select a representative...</option>
@@ -205,7 +222,6 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
           className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
         >
           <option value="">Select week...</option>
-
           {weeks.map((w) => {
             const isFuture =
               selectedMonth === currentMonth && w.week > currentWeek;
@@ -224,7 +240,6 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         <label className="text-sm font-semibold text-gray-700">
           Report File
         </label>
-
         <label
           htmlFor="file-upload"
           className="mt-2 flex flex-col items-center border-2 border-dashed rounded-xl py-10 cursor-pointer bg-gray-50 hover:bg-gray-100"
@@ -232,7 +247,6 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
           <UploadCloud size={40} className="text-blue-500 mb-3" />
           <p className="text-blue-600 font-medium text-sm">Click to upload</p>
           <p className="text-gray-400 text-xs mt-2">Excel (.xlsx)</p>
-
           <input
             id="file-upload"
             type="file"
@@ -240,25 +254,11 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
             onChange={handleFile}
           />
         </label>
-
         {file && (
           <p className="text-sm text-gray-600 mt-2">
             Selected: <span className="font-semibold">{file.name}</span>
           </p>
         )}
-      </div>
-
-      {/* Info */}
-      <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-3 py-3 text-sm text-gray-600">
-        <Info size={18} />
-        Need the correct format?{" "}
-        <a
-          href="https://docs.google.com/spreadsheets/d/1hJVXp9ZA8zoUuz9BXFvtR4PS70pdectd0uj3bZmbGao/edit"
-          target="_blank"
-          className="text-blue-600 underline"
-        >
-          Download Template
-        </a>
       </div>
 
       {/* Actions */}
@@ -271,11 +271,13 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         </button>
 
         <button
-          disabled={loading || !file || !rep || !selectedMonth || !selectedWeek}
+          disabled={
+            loading || !file || !repId || !selectedMonth || !selectedWeek
+          }
           onClick={handleSubmit}
           className={`px-4 py-2 rounded-lg text-white flex items-center gap-2
             ${
-              loading || !file || !rep || !selectedMonth || !selectedWeek
+              loading || !file || !repId || !selectedMonth || !selectedWeek
                 ? "bg-blue-300 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
             }`}
