@@ -9,6 +9,7 @@ import {
   LogOut,
   FunnelIcon,
   CircleDollarSignIcon,
+  Keyboard,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -72,6 +73,11 @@ export default function Sidebar() {
             name: "Manage Admins",
             icon: Shield,
             path: "/admins",
+          },
+          {
+            name: "Audit Logs",
+            icon: Keyboard,
+            path: "/audit-logs",
           },
         ]
       : []),
