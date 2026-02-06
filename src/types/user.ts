@@ -1,8 +1,15 @@
 export interface User {
   id: number;
-  name: string;
+
+  firstName: string;
+  lastName: string;
   email: string;
-  role: "ADMIN" | "SALES_REP" | "MANAGER";
+
+  department: string;
+  yearlyTarget: number;
+
+  authRole: "USER";
   status: "ACTIVE" | "INACTIVE";
+
   createdAt: string;
 }

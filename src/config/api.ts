@@ -7,10 +7,38 @@ export interface KpiFilters {
 }
 
 export const API_ENDPOINTS = {
-  uploadMeetings: (repName: string, month: string, week: number) =>
-    `${BASE_URL}/upload/meetings?repName=${encodeURIComponent(
-      repName
-    )}&month=${encodeURIComponent(month)}&week=${week}`,
+  /* =========================
+   * AUTH
+   * ========================= */
+  login: () => `/auth/login`,
+  requestPasswordReset: () => `/auth/request-password-reset`,
+  resetPassword: () => `/auth/reset-password`,
+
+  /* =========================
+   * ADMINS
+   * ========================= */
+  inviteAdmin: () => `/admins/invite`,
+  acceptInvite: () => `/admins/accept-invite`,
+  getAdmins: () => `/admins`,
+  getAdminByEmail: (email: string) => `/admins/${email}`,
+
+  /* =========================
+   * UPLOADS
+   * ========================= */
+  uploadMeetings: (salesOwnerId: number, month: string, week: number) =>
+    `/upload/meetings?salesOwnerId=${salesOwnerId}&month=${month}&week=${week}`,
+
+  uploadPipeline: (params: { year: number; salesOwnerId?: number }) => {
+    const query = new URLSearchParams();
+
+    query.append("year", String(params.year));
+
+    if (params.salesOwnerId) {
+      query.append("salesOwnerId", String(params.salesOwnerId));
+    }
+
+    return `/upload/pipeline?${query.toString()}`;
+  },
 
   getMeetings: (
     repName?: string,
@@ -27,46 +55,157 @@ export const API_ENDPOINTS = {
     if (page) params.append("page", String(page));
     if (limit) params.append("limit", String(limit));
 
-    // ✅ NEW: optional filters
     if (filters?.month) params.append("month", filters.month);
     if (filters?.week !== undefined)
       params.append("week", String(filters.week));
 
-    return `${BASE_URL}/meetings?${params.toString()}`;
+    return `/meetings?${params.toString()}`;
   },
 
-  getKpi: (
-    repName: string,
-    filters?: { month?: string; week?: string; quarter?: string }
-  ) => {
+  /* =========================
+   * KPI
+   * ========================= */
+
+  // USER – self KPI
+  getMyKpi: (filters?: KpiFilters) => {
     const params = new URLSearchParams();
 
     if (filters?.month) params.append("month", filters.month);
     if (filters?.week) params.append("week", filters.week);
     if (filters?.quarter) params.append("quarter", filters.quarter);
 
-    const query = params.toString();
-    return `${BASE_URL}/kpi/${encodeURIComponent(repName)}${
-      query ? `?${query}` : ""
-    }`;
+    const qs = params.toString();
+    return `/kpi/me${qs ? `?${qs}` : ""}`;
   },
 
-  getAvailableMonths: () => `${BASE_URL}/filters/months`,
+  // ADMIN / SUPER_ADMIN – KPI by rep
+  getKpiByRep: (repName: string, filters?: KpiFilters) => {
+    const params = new URLSearchParams();
+
+    if (filters?.month) params.append("month", filters.month);
+    if (filters?.week) params.append("week", filters.week);
+    if (filters?.quarter) params.append("quarter", filters.quarter);
+
+    const qs = params.toString();
+    return `/kpi/${encodeURIComponent(repName)}${qs ? `?${qs}` : ""}`;
+  },
+
+  /* =========================
+   * FILTERS
+   * ========================= */
+  getAvailableMonths: () => `/filters/months`,
   getAvailableWeeks: (month: string) =>
-    `${BASE_URL}/filters/weeks?month=${encodeURIComponent(month)}`,
+    `/filters/weeks?month=${encodeURIComponent(month)}`,
+  getAvailableQuarters: () => `/filters/quarters`,
 
-  getAvailableQuarters: () => `${BASE_URL}/filters/quarters`,
+  /* =========================
+   * CALENDAR
+   * ========================= */
+  getCalendarMonths: () => `/calendar/months`,
+  getCalendarWeeks: (month: string, userId: number) =>
+    `/calendar/weeks?month=${encodeURIComponent(month)}&userId=${userId}`,
 
-  getCalendarMonths: () => `${BASE_URL}/calendar/months`,
-  getCalendarWeeks: (month: string) =>
-    `${BASE_URL}/calendar/weeks?month=${encodeURIComponent(month)}`,
+  /* =========================
+   * USERS (STAFF)
+   * ========================= */
+  getUsers: () => `/users`,
+  getUserById: (id: number | string) => `/users/${id}`,
+  createUser: () => `/users`,
+  updateUser: (id: number | string) => `/users/${id}`,
+  deactivateUser: (id: number | string) => `/users/${id}`,
+  getDepartments: () => `/departments`,
 
-  getUsers: () => `${BASE_URL}/users`,
-  getUserById: (id: number | string) => `${BASE_URL}/users/${id}`,
+  /* =========================
+   * PIPELINE (DEALS)
+   * ========================= */
 
-  createUser: `/users`,
-  updateUser: (id: number | string) => `${BASE_URL}/users/${id}`,
-  deactivateUser: (id: number | string) => `${BASE_URL}/users/${id}`,
+  getPipelineDeals: (params?: {
+    page?: number;
+    limit?: number;
+    year?: number;
+    quarter?: number;
+    stageId?: number;
+    stageKey?: string;
+    salesOwnerId?: number;
+    preSalesOwnerIds?: number[];
+  }) => {
+    const query = new URLSearchParams();
+
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.limit) query.append("limit", String(params.limit));
+    if (params?.year) query.append("year", String(params.year));
+    if (params?.quarter) query.append("quarter", String(params.quarter));
+    if (params?.stageId) query.append("stageId", String(params.stageId));
+    if (params?.stageKey) query.append("stageKey", params.stageKey);
+    if (params?.salesOwnerId)
+      query.append("salesOwnerId", String(params.salesOwnerId));
+    if (params?.preSalesOwnerIds?.length) {
+      query.append("preSalesOwnerIds", params.preSalesOwnerIds.join(","));
+    }
+
+    const qs = query.toString();
+    return `/pipeline${qs ? `?${qs}` : ""}`;
+  },
+
+  getPipelineDealByExternalId: (externalDealId: string) =>
+    `/pipeline/deal/${externalDealId}`,
+
+  createPipelineDeal: () => `/pipeline`,
+
+  updatePipelineDeal: (externalDealId: string) => `/pipeline/${externalDealId}`,
+  getDealStages: () => `/deal-stages`,
+
+  /* =========================
+   * CUSTOMERS
+   * ========================= */
+
+  getCustomers: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.limit) query.append("limit", String(params.limit));
+
+    const qs = query.toString();
+    return `/customers${qs ? `?${qs}` : ""}`;
+  },
+
+  getCustomerById: (id: number | string) => `/customers/${id}`,
+
+  createCustomer: () => `/customers`,
+
+  updateCustomer: (id: number | string) => `/customers/${id}`,
+
+  createCustomerContacts: (customerId: number | string) =>
+    `/customers/${customerId}/contacts`,
+
+  updateCustomerContact: (contactId: number | string) =>
+    `/customers/contacts/${contactId}`,
+
+  /* =========================
+   * AUDIT LOGS (SUPER ADMIN)
+   * ========================= */
+  getAuditLogs: (params?: {
+    actorType?: "USER" | "ADMIN";
+    action?: string;
+    entity?: string;
+    actorId?: number;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+
+    if (params?.actorType) query.append("actorType", params.actorType);
+    if (params?.action) query.append("action", params.action);
+    if (params?.entity) query.append("entity", params.entity);
+    if (params?.actorId) query.append("actorId", String(params.actorId));
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.limit) query.append("limit", String(params.limit));
+
+    const qs = query.toString();
+    return `/audit-logs${qs ? `?${qs}` : ""}`;
+  },
+
+  getAuditLogById: (id: number | string) => `/audit-logs/${id}`,
 };
 
 export default BASE_URL;

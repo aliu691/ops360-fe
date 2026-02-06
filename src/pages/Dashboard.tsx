@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import apiClient from "../config/apiClient";
-import { API_ENDPOINTS } from "../config/api";
+import { apiClient } from "../config/apiClient";
+import { API_ENDPOINTS, KpiFilters } from "../config/api";
 import { useUsers } from "../hooks/useUsers";
 
 import {
@@ -16,6 +16,7 @@ import {
   getCurrentMonth,
   getCurrentWeek,
 } from "../utils/dateUtils";
+import { useAuth } from "../hooks/useAuth";
 
 /* ---------------------------------------------
    TYPES
@@ -120,11 +121,21 @@ export default function Dashboard() {
 
   const [selectedRep, setSelectedRep] = useState<string | undefined>();
 
+  const salesUsers = users.filter((u) => u.department === "SALES");
+
+  const { actor, isUser, isAdmin } = useAuth();
+
   useEffect(() => {
-    if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].name);
+    if (actor?.type === "USER" && actor.firstName) {
+      setSelectedRep(actor.firstName);
     }
-  }, [users, selectedRep]);
+  }, [actor]);
+
+  useEffect(() => {
+    if (actor?.type === "ADMIN" && !selectedRep && salesUsers.length > 0) {
+      setSelectedRep(salesUsers[0].firstName);
+    }
+  }, [actor, salesUsers]);
 
   useEffect(() => {
     apiClient
@@ -170,21 +181,30 @@ export default function Dashboard() {
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
+  const effectiveRepName =
+    actor?.type === "USER" ? actor.firstName : selectedRep;
+
   /* ---------------------------------------------------
    FETCH KPI DATA
 ---------------------------------------------------*/
+
   useEffect(() => {
-    if (!selectedRep) return;
+    if (!actor) return;
+    if (isAdmin && !effectiveRepName) return;
 
     setLoading(true);
 
-    const params: Record<string, string | number> = {};
+    const filters: KpiFilters = {
+      month: selectedMonth,
+      week: selectedWeek !== undefined ? String(selectedWeek) : undefined,
+    };
 
-    if (selectedMonth) params.month = selectedMonth;
-    if (selectedWeek !== undefined) params.week = selectedWeek;
+    const endpoint = isUser
+      ? API_ENDPOINTS.getMyKpi(filters)
+      : API_ENDPOINTS.getKpiByRep(effectiveRepName!, filters);
 
     apiClient
-      .get(API_ENDPOINTS.getKpi(selectedRep, params))
+      .get(endpoint)
       .then((res) => {
         const data = res.data ?? {};
         setKpi({
@@ -201,7 +221,7 @@ export default function Dashboard() {
         setKpi(null);
       })
       .finally(() => setLoading(false));
-  }, [selectedRep, selectedMonth, selectedWeek]);
+  }, [actor, isUser, isAdmin, effectiveRepName, selectedMonth, selectedWeek]);
 
   const scoreCardBorder =
     normalizeStatus(kpi?.status) === "GOOD"
@@ -222,7 +242,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mt-6 mb-10">
         {/* Left */}
         <div>
-          <h1 className="text-3xl font-extrabold">KPI Dashboard</h1>
+          <h1 className="text-3xl font-extrabold">Meetings KPI Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">
             Weekly snapshot — shows findings and quality metrics for the
             selected rep.
@@ -232,25 +252,28 @@ export default function Dashboard() {
         {/* Right Filters */}
         <div className="flex items-center gap-4">
           {/* Rep Select */}
-          <div className="relative">
-            <select
-              value={selectedRep}
-              onChange={(e) => setSelectedRep(e.target.value)}
-              disabled={usersLoading}
-              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
-            >
-              {users.map((u) => (
-                <option key={u.id} value={u.name}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
+          {isAdmin && (
+            <div className="relative">
+              <select
+                value={selectedRep}
+                onChange={(e) => setSelectedRep(e.target.value)}
+                disabled={usersLoading}
+                className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
+              >
+                {salesUsers.map((u) => (
+                  <option key={u.id} value={u.firstName}>
+                    {u.firstName}
+                  </option>
+                ))}
+              </select>
 
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          </div>
+              <ChevronDown
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              />
+            </div>
+          )}
+
           <Select
             value={selectedMonth}
             onChange={setSelectedMonth}

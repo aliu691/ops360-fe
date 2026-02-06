@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import apiClient from "../config/apiClient";
-import { Search, ChevronDown, ChevronRight, UploadCloud } from "lucide-react";
+import { apiClient } from "../config/apiClient";
+import { Search, ChevronRight, UploadCloud } from "lucide-react";
 import MeetingDetailsPanel from "../components/MeetingDetailsPanel";
 import Modal from "../components/Modal";
 import UploadMeetingsForm from "../components/UploadMeetingsForm";
@@ -11,6 +11,9 @@ import {
   getCurrentWeek,
 } from "../utils/dateUtils";
 import { useUsers } from "../hooks/useUsers";
+import { Select } from "../components/select";
+import Pagination from "../components/Pagination";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Meetings() {
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -22,7 +25,7 @@ export default function Meetings() {
   const [repFilter, setRepFilter] = useState("");
 
   const [page, setPage] = useState(1);
-  const [limit] = useState(20);
+  const limit = 20;
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -38,18 +41,16 @@ export default function Meetings() {
   const currentWeek = getCurrentWeek();
 
   const { users, loading: usersLoading } = useUsers();
+  const salesUsers = users.filter((u) => u.department === "SALES");
 
-  const [selectedRep, setSelectedRep] = useState<string | undefined>();
+  const { actor, isUser, isAdmin } = useAuth();
 
-  useEffect(() => {
-    if (!selectedRep && users.length > 0) {
-      setSelectedRep(users[0].name);
-    }
-  }, [users, selectedRep]);
+  // 🔐 USERS NEVER SEND repName — backend infers from JWT
+  const effectiveRepFilter = isAdmin && repFilter ? repFilter : undefined;
 
-  /* ----------------------------------------
-     LOAD MONTHS (auto-select current)
-  ---------------------------------------- */
+  /* =========================
+     LOAD MONTHS
+  ========================= */
   useEffect(() => {
     apiClient
       .get(API_ENDPOINTS.getAvailableMonths())
@@ -64,10 +65,9 @@ export default function Meetings() {
       .catch(() => setMonths([]));
   }, []);
 
-  /* ----------------------------------------
-     LOAD WEEKS WHEN MONTH CHANGES
-     (auto-select current week)
-  ---------------------------------------- */
+  /* =========================
+     LOAD WEEKS
+  ========================= */
   useEffect(() => {
     setWeeks([]);
     setSelectedWeek(undefined);
@@ -88,43 +88,38 @@ export default function Meetings() {
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
-  /* ----------------------------------------
-     FETCH MEETINGS (SERVER FILTERED)
-  ---------------------------------------- */
+  /* =========================
+     FETCH MEETINGS
+  ========================= */
   const loadMeetings = async () => {
     setLoading(true);
 
     try {
-      const url = API_ENDPOINTS.getMeetings(
-        repFilter || undefined,
-        page,
-        limit,
-        {
-          month: selectedMonth,
-          week: selectedWeek,
-        }
-      );
+      const url = API_ENDPOINTS.getMeetings(effectiveRepFilter, page, limit, {
+        month: selectedMonth,
+        week: selectedWeek,
+      });
 
       const res = await apiClient.get(url);
       const data = res.data;
 
-      setMeetings(data.items || []);
-      setTotalPages(data.totalPages || 1);
-      setTotal(data.total || 0);
+      setMeetings(data.items ?? []);
+      setTotalPages(data.totalPages ?? 1);
+      setTotal(data?.total ?? 0);
     } catch (err) {
       console.error("Error fetching meetings:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   useEffect(() => {
     loadMeetings();
   }, [page, repFilter, selectedMonth, selectedWeek]);
 
-  /* ----------------------------------------
-     LOCAL SEARCH (client-side)
-  ---------------------------------------- */
+  /* =========================
+     LOCAL SEARCH
+  ========================= */
   const filtered = meetings.filter((m) => {
     const q = query.toLowerCase();
     return (
@@ -139,9 +134,11 @@ export default function Meetings() {
     setOpenPanel(true);
   };
 
-  /* ----------------------------------------
-     RENDER
-  ---------------------------------------- */
+  const userFirstName = actor?.type === "USER" ? actor.firstName : undefined;
+
+  /* =========================
+     UI
+  ========================= */
   return (
     <div className="space-y-10 pb-20 px-6 md:px-10 lg:px-14">
       {/* HEADER */}
@@ -167,15 +164,18 @@ export default function Meetings() {
 
         {/* Filters */}
         <div className="flex items-center gap-3">
-          <Select
-            value={repFilter || undefined}
-            onChange={(v) => {
-              setPage(1);
-              setRepFilter(v ?? "");
-            }}
-            options={users.map((u) => u.name)}
-            placeholder={usersLoading ? "Loading reps..." : "All Reps"}
-          />
+          {/* ADMIN ONLY: Rep filter */}
+          {isAdmin && (
+            <Select
+              value={repFilter || undefined}
+              onChange={(v) => {
+                setPage(1);
+                setRepFilter(v ?? "");
+              }}
+              options={salesUsers.map((u) => u.firstName)}
+              placeholder={usersLoading ? "Loading reps..." : "All Reps"}
+            />
+          )}
 
           {/* Month */}
           <Select
@@ -190,40 +190,31 @@ export default function Meetings() {
           />
 
           {/* Week */}
-          <div className="relative">
-            <select
-              disabled={!selectedMonth}
-              value={selectedWeek ?? ""}
-              onChange={(e) => {
-                setPage(1);
-                setSelectedWeek(
-                  e.target.value ? Number(e.target.value) : undefined
-                );
-              }}
-              className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm disabled:bg-gray-100"
+          <Select
+            disabled={!selectedMonth}
+            value={selectedWeek ? String(selectedWeek) : undefined}
+            onChange={(v) => {
+              setPage(1);
+              setSelectedWeek(v ? Number(v) : undefined);
+            }}
+            options={weeks.map((w: any) => String(w.week))}
+            placeholder="All Weeks"
+            format={(v) => {
+              const match = weeks.find((w: any) => String(w.week) === v);
+              return match ? match.label : v;
+            }}
+          />
+
+          {/* USER ONLY: Upload */}
+          {isUser && actor && (
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-2"
             >
-              <option value="">All Weeks</option>
-              {weeks.map((w: any) => (
-                <option key={w.week} value={w.week}>
-                  {w.label}
-                </option>
-              ))}
-            </select>
-
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          </div>
-
-          {/* Upload */}
-          <button
-            onClick={() => setUploadOpen(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-2"
-          >
-            <UploadCloud size={16} />
-            Upload Weekly Report
-          </button>
+              <UploadCloud size={16} />
+              Upload Weekly Report
+            </button>
+          )}
         </div>
       </div>
 
@@ -274,32 +265,16 @@ export default function Meetings() {
             </tbody>
           </table>
         )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <div className="flex justify-between px-4 py-4 border-t bg-gray-50">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-              className="px-3 py-2 rounded-lg text-sm bg-white border disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            <div className="text-sm">
-              Page <b>{page}</b> of <b>{totalPages}</b>
-            </div>
-
-            <button
-              disabled={page === totalPages}
-              onClick={() => setPage(page + 1)}
-              className="px-3 py-2 rounded-lg text-sm bg-white border disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        )}
       </div>
+
+      <Pagination
+        page={page}
+        limit={limit}
+        total={total}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        label="deals"
+      />
 
       {/* DETAILS */}
       <MeetingDetailsPanel
@@ -308,53 +283,18 @@ export default function Meetings() {
         meeting={selected}
       />
 
-      {/* UPLOAD */}
-      <Modal open={uploadOpen} onClose={() => setUploadOpen(false)}>
-        <UploadMeetingsForm
-          onSuccess={() => {
-            setUploadOpen(false);
-            loadMeetings();
-          }}
-        />
-      </Modal>
-    </div>
-  );
-}
-
-/* ----------------------------------------
-   Reusable Select
----------------------------------------- */
-function Select({
-  value,
-  onChange,
-  options,
-  placeholder,
-  format,
-}: {
-  value?: string;
-  onChange: (v?: string) => void;
-  options: string[];
-  placeholder?: string;
-  format?: (v: string) => string;
-}) {
-  return (
-    <div className="relative">
-      <select
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || undefined)}
-        className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
-      >
-        <option value="">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {format ? format(o) : o}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={16}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-      />
+      {/* UPLOAD (USER ONLY) */}
+      {isUser && actor && (
+        <Modal open={uploadOpen} onClose={() => setUploadOpen(false)}>
+          <UploadMeetingsForm
+            repName={userFirstName}
+            onSuccess={() => {
+              setUploadOpen(false);
+              loadMeetings();
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import apiClient from "../config/apiClient";
+import { apiClient } from "../config/apiClient";
 import { API_ENDPOINTS } from "../config/api";
 import { User } from "../types/user";
 
@@ -23,11 +23,11 @@ export default function UserDetails() {
     return <div className="p-8 text-gray-500">Loading user…</div>;
   }
 
-  if (!user || !user.name) {
+  if (!user || !user.firstName) {
     return <div className="p-8 text-red-500">User not found</div>;
   }
 
-  const initials = user.name
+  const initials = user.firstName
     .trim()
     .split(" ")
     .filter(Boolean)
@@ -58,8 +58,10 @@ export default function UserDetails() {
             {initials}
           </div>
 
-          <p className="font-semibold text-lg">{user.name}</p>
-          <p className="text-sm text-gray-500">{user.role}</p>
+          <p className="font-semibold text-lg">
+            {user.lastName + " " + user.firstName}
+          </p>
+          <p className="text-sm text-gray-500">{user.department}</p>
 
           <span
             className={`inline-block mt-3 px-3 py-1 text-xs rounded-full ${
@@ -81,7 +83,7 @@ export default function UserDetails() {
           <div>
             <label className="text-sm font-semibold">Name</label>
             <input
-              value={user.name}
+              value={user.lastName + " " + user.firstName}
               readOnly
               className="mt-1 w-full border rounded-lg px-3 py-2 bg-gray-50"
             />
@@ -97,9 +99,9 @@ export default function UserDetails() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold">Role</label>
+            <label className="text-sm font-semibold">Department</label>
             <input
-              value={user.role}
+              value={user.department}
               readOnly
               className="mt-1 w-full border rounded-lg px-3 py-2 bg-gray-50"
             />

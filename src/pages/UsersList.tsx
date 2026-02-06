@@ -1,22 +1,32 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import apiClient from "../config/apiClient";
+import { apiClient } from "../config/apiClient";
 import { API_ENDPOINTS } from "../config/api";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { User } from "../types/user";
+import AddUserModal from "../components/AddUserModal";
+import { useNavigate } from "react-router-dom";
 
 export default function UsersList() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openAddUser, setOpenAddUser] = useState(false);
 
   const navigate = useNavigate();
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get(API_ENDPOINTS.getUsers());
+      setUsers(res.data?.items ?? []);
+    } catch {
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    apiClient
-      .get(API_ENDPOINTS.getUsers())
-      .then((res) => setUsers(res.data?.items ?? []))
-      .catch(() => setUsers([]))
-      .finally(() => setLoading(false));
+    fetchUsers();
   }, []);
 
   return (
@@ -24,17 +34,18 @@ export default function UsersList() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">User List</h1>
+          <h1 className="text-2xl font-bold">Team Members</h1>
           <p className="text-gray-500 text-sm">
-            Manage system access, roles, and user details.
+            Manage system access, departments, and targets.
           </p>
         </div>
 
         <button
-          onClick={() => navigate("/users/new")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+          onClick={() => setOpenAddUser(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
         >
-          Add New User
+          <Plus size={16} />
+          Add New Team Member
         </button>
       </div>
 
@@ -48,7 +59,7 @@ export default function UsersList() {
               <tr>
                 <th className="text-left px-6 py-4">Name</th>
                 <th className="text-left px-6 py-4">Email</th>
-                <th className="text-left px-6 py-4">Role</th>
+                <th className="text-left px-6 py-4">Department</th>
                 <th className="text-left px-6 py-4">Status</th>
                 <th className="px-6 py-4"></th>
               </tr>
@@ -57,15 +68,13 @@ export default function UsersList() {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id} className="border-t hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="font-semibold">{u.name}</div>
+                  <td className="px-6 py-4 font-semibold">
+                    {u.lastName} {u.firstName}
                   </td>
 
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    <div className="text-xs text-gray-500">{u.email}</div>
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{u.email}</td>
 
-                  <td className="px-6 py-4">{u.role ?? "SALES REP"}</td>
+                  <td className="px-6 py-4">{u.department}</td>
 
                   <td className="px-6 py-4">
                     <span
@@ -105,6 +114,14 @@ export default function UsersList() {
           </table>
         )}
       </div>
+
+      {/* ADD USER MODAL */}
+      {openAddUser && (
+        <AddUserModal
+          onClose={() => setOpenAddUser(false)}
+          onSuccess={fetchUsers}
+        />
+      )}
     </div>
   );
 }
