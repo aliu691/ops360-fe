@@ -180,6 +180,32 @@ export const API_ENDPOINTS = {
 
   updateCustomerContact: (contactId: number | string) =>
     `/customers/contacts/${contactId}`,
+
+  /* =========================
+   * AUDIT LOGS (SUPER ADMIN)
+   * ========================= */
+  getAuditLogs: (params?: {
+    actorType?: "USER" | "ADMIN";
+    action?: string;
+    entity?: string;
+    actorId?: number;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+
+    if (params?.actorType) query.append("actorType", params.actorType);
+    if (params?.action) query.append("action", params.action);
+    if (params?.entity) query.append("entity", params.entity);
+    if (params?.actorId) query.append("actorId", String(params.actorId));
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.limit) query.append("limit", String(params.limit));
+
+    const qs = query.toString();
+    return `/audit-logs${qs ? `?${qs}` : ""}`;
+  },
+
+  getAuditLogById: (id: number | string) => `/audit-logs/${id}`,
 };
 
 export default BASE_URL;
