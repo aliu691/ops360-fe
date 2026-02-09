@@ -13,6 +13,8 @@ export interface Customer {
   contacts?: CustomerContact[];
   createdAt: string;
   updatedAt: string;
+  dealCount: number;
+  totalDealSize: number;
 }
 
 export interface PaginatedResponse<T> {
