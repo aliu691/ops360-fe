@@ -17,6 +17,9 @@ export default function CustomersList() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
+  const formatMoney = (value?: number | null) =>
+    typeof value === "number" ? `₦ ${value.toLocaleString()}` : "—";
+
   const fetchCustomers = async () => {
     try {
       setLoading(true);
@@ -70,7 +73,7 @@ export default function CustomersList() {
               <tr>
                 <th className="text-left px-6 py-4">Customer Name</th>
                 <th className="text-left px-6 py-4">Total Deals</th>
-                <th className="text-left px-6 py-4">Primary Contact</th>
+                <th className="text-left px-6 py-4">Total Deal Size</th>
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
@@ -89,13 +92,13 @@ export default function CustomersList() {
                     <td className="px-6 py-4 font-semibold">{customer.name}</td>
 
                     {/* Deals (placeholder for now) */}
-                    <td className="px-6 py-4 text-sm text-gray-500">—</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {customer.dealCount}
+                    </td>
 
                     {/* Primary Contact */}
                     <td className="px-6 py-4 text-sm">
-                      {primaryContact
-                        ? primaryContact.name ?? "Unnamed contact"
-                        : "—"}
+                      {formatMoney(customer.totalDealSize)}
                     </td>
                   </tr>
                 );
