@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import PipelineFilter from "../components/pipeline/PipelineFilter";
 import PipelineFunnel from "../components/pipeline/PipelineFunnel";
 import PipelineSummaryBar from "../components/pipeline/PipelineSummaryBar";
 import QuarterlyTargetCard from "../components/pipeline/QuarterlyTargetCard";
 import StageDealsModal from "../components/pipeline/StageDealsModal";
-import { Select } from "../components/select";
 import { API_ENDPOINTS } from "../config/api";
 import { apiClient } from "../config/apiClient";
 import { useAuth } from "../hooks/useAuth";
@@ -14,33 +14,29 @@ export default function SalesPipelinePage() {
   const [loading, setLoading] = useState(false);
 
   const [users, setUsers] = useState<any[]>([]);
+  const [hideClosedWon, setHideClosedWon] = useState(false);
 
   /* =========================
    * FILTER VISIBILITY
    * ========================= */
   const [showFilters, setShowFilters] = useState(false);
 
-  /* =========================
-   * DRAFT FILTERS (UI ONLY)
-   * ========================= */
-  const [draftQuarter, setDraftQuarter] = useState<string | undefined>();
-  const [draftSalesRepId, setDraftSalesRepId] = useState<string | undefined>();
-  const [draftPreSalesRepId, setDraftPreSalesRepId] = useState<
-    string | undefined
-  >();
-
   const currentYear = String(new Date().getFullYear());
-
-  const [draftYear, setDraftYear] = useState(currentYear);
 
   /* =========================
    * APPLIED FILTERS (API)
    * ========================= */
-  const [appliedFilters, setAppliedFilters] = useState({
+  type PipelineFilters = {
+    year: string;
+    quarter?: string;
+    salesRepId?: string;
+    preSalesRepIds: string[];
+    stageId?: string;
+  };
+
+  const [appliedFilters, setAppliedFilters] = useState<PipelineFilters>({
     year: currentYear,
-    quarter: undefined as string | undefined,
-    salesRepId: undefined as string | undefined,
-    preSalesRepId: undefined as string | undefined,
+    preSalesRepIds: [],
   });
 
   const [selectedStage, setSelectedStage] = useState<{
@@ -68,8 +64,6 @@ export default function SalesPipelinePage() {
     loadUsers();
   }, []);
 
-  const salesReps = users.filter((u) => u.department === "SALES");
-  const preSalesReps = users.filter((u) => u.department === "PRE_SALES");
   const { actor, isAdmin, isUser } = useAuth();
 
   const effectiveFilters = {
@@ -85,9 +79,10 @@ export default function SalesPipelinePage() {
         : undefined,
 
     // ✅ Presales filter: USER + ADMIN
-    preSalesOwnerIds: appliedFilters.preSalesRepId
-      ? [Number(appliedFilters.preSalesRepId)]
-      : undefined,
+    preSalesOwnerIds:
+      appliedFilters.preSalesRepIds.length > 0
+        ? appliedFilters.preSalesRepIds.map(Number)
+        : undefined,
   };
 
   /* =========================
@@ -134,39 +129,6 @@ export default function SalesPipelinePage() {
   );
 
   /* =========================
-   * APPLY / RESET FILTERS
-   * ========================= */
-  const applyFilters = () => {
-    setAppliedFilters({
-      year: draftYear,
-      quarter: draftQuarter,
-      salesRepId: draftSalesRepId,
-      preSalesRepId: draftPreSalesRepId,
-    });
-
-    setShowFilters(false);
-  };
-
-  const resetFilters = () => {
-    setDraftYear(currentYear);
-    setDraftQuarter(undefined);
-    setDraftPreSalesRepId(undefined);
-
-    if (isAdmin) {
-      setDraftSalesRepId(undefined);
-    }
-
-    setAppliedFilters({
-      year: currentYear,
-      quarter: undefined,
-      salesRepId: undefined,
-      preSalesRepId: undefined,
-    });
-
-    setShowFilters(false);
-  };
-
-  /* =========================
    * MODAL DEALS
    * ========================= */
   const modalDeals = useMemo(() => {
@@ -194,85 +156,51 @@ export default function SalesPipelinePage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className="px-4 py-2 text-sm rounded-lg border bg-white hover:bg-gray-50"
-        >
-          {showFilters ? "Hide Filters" : "Filters"}
-        </button>
+        {/* Right-side actions */}
+        <div className="flex items-center gap-3 md:ml-auto">
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="px-4 py-2 text-sm rounded-lg border bg-white hover:bg-gray-50 transition"
+          >
+            {showFilters ? "Hide Filters" : "Filters"}
+          </button>
+
+          <button
+            onClick={() => setHideClosedWon((v) => !v)}
+            className={`px-4 py-2 text-sm rounded-lg border transition
+        ${
+          hideClosedWon
+            ? "bg-green-600 text-white border-green-600 hover:bg-green-700"
+            : "bg-white hover:bg-gray-50"
+        }`}
+          >
+            {hideClosedWon ? "Show Closed Won" : "Hide Closed Won"}
+          </button>
+        </div>
       </div>
 
-      {/* FILTER PANEL */}
       {showFilters && (
-        <div className="flex flex-wrap gap-3 p-4 border rounded-xl bg-gray-50">
-          {/* <Select
-            value={draftYear}
-            onChange={(v) => v && setDraftYear(v)}
-            options={["2025"]}
-            placeholder="Year"
-          /> */}
-
-          <Select
-            value={draftYear}
-            onChange={(v) => v && setDraftYear(v)}
-            options={yearOptions}
-            placeholder="Year"
-          />
-
-          <Select
-            value={draftQuarter}
-            onChange={setDraftQuarter}
-            options={["1", "2", "3", "4"]}
-            placeholder="All Quarters"
-            format={(q) => `Q${q}`}
-          />
-
-          {isAdmin && (
-            <Select
-              value={draftSalesRepId}
-              onChange={setDraftSalesRepId}
-              options={salesReps.map((u) => String(u.id))}
-              placeholder="All Sales Reps"
-              format={(id) => {
-                const u = salesReps.find((x) => String(x.id) === id);
-                return u ? `${u.firstName} ${u.lastName}` : id;
-              }}
-            />
-          )}
-
-          <Select
-            value={draftPreSalesRepId}
-            onChange={setDraftPreSalesRepId}
-            options={preSalesReps.map((u) => String(u.id))}
-            placeholder="All Presales Reps"
-            format={(id) => {
-              const u = preSalesReps.find((x) => String(x.id) === id);
-              return u ? `${u.firstName} ${u.lastName}` : id;
-            }}
-          />
-
-          <div className="flex gap-2 ml-auto">
-            <button
-              onClick={resetFilters}
-              className="px-4 py-2 text-sm rounded-lg border bg-white hover:bg-gray-50"
-            >
-              Reset
-            </button>
-
-            <button
-              onClick={applyFilters}
-              className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
+        <PipelineFilter
+          isAdmin={isAdmin}
+          users={users}
+          dealStages={[]}
+          value={{
+            year: appliedFilters.year,
+            quarter: appliedFilters.quarter,
+            salesRepId: appliedFilters.salesRepId,
+            preSalesRepIds: appliedFilters.preSalesRepIds ?? [],
+          }}
+          onApply={(filters) => {
+            setAppliedFilters(filters);
+          }}
+          onClose={() => setShowFilters(false)}
+        />
       )}
 
       {/* CONTENT */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-6 min-w-0">
         {/* LEFT */}
-        <div className="col-span-12 lg:col-span-4">
+        <div className="col-span-12 lg:col-span-4 min-w-0">
           <div className="bg-white rounded-2xl shadow-sm p-6 h-full">
             <QuarterlyTargetCard
               summary={data.summary}
@@ -286,11 +214,12 @@ export default function SalesPipelinePage() {
         </div>
 
         {/* RIGHT */}
-        <div className="col-span-12 lg:col-span-8 space-y-6">
+        <div className="col-span-12 lg:col-span-8 space-y-6 min-w-0">
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <PipelineFunnel
               stageTotals={data.stageTotals}
               onStageClick={(stage) => setSelectedStage(stage)}
+              hideClosedWon={hideClosedWon}
             />
           </div>
 

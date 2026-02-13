@@ -1,4 +1,5 @@
 import { PipelineSummary } from "../../types/pipeline";
+import { formatCompactMoney, formatMoney } from "../../utils/numbersFormatters";
 
 interface Props {
   summary: PipelineSummary;
@@ -6,9 +7,6 @@ interface Props {
 }
 
 export default function QuarterlyTargetCard({ summary, quarter }: Props) {
-  const formatMoney = (value?: number | null) =>
-    typeof value === "number" ? `₦ ${value.toLocaleString()}` : "—";
-
   const isQuarterView = Boolean(quarter);
 
   const target = isQuarterView ? summary.quarterlyTarget : summary.yearlyTarget;
@@ -89,16 +87,19 @@ export default function QuarterlyTargetCard({ summary, quarter }: Props) {
           <span className="text-sm text-gray-600">
             {isQuarterView ? "Quarterly Target" : "Yearly Target"}
           </span>
-          <div className="text-xl font-bold">{formatMoney(target)}</div>
+          <div className="text-lg sm:text-xl font-bold break-words">
+            {formatMoney(target)}
+          </div>
         </div>
 
         <div className="bg-blue-50 rounded-lg p-3">
-          <div className="flex justify-between">
-            <span className="text-sm text-blue-700 font-medium">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-blue-700 font-medium shrink-0">
               Closed Won
             </span>
-            <span className="text-xl font-bold text-blue-600">
-              {formatMoney(achieved)}
+
+            <span className="text-base sm:text-lg font-bold text-blue-600 text-right truncate">
+              {formatCompactMoney(achieved)}
             </span>
           </div>
 
@@ -116,9 +117,11 @@ export default function QuarterlyTargetCard({ summary, quarter }: Props) {
             <strong>{summary.totalDeals}</strong>
           </div>
 
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
             <span>Avg Deal Size</span>
-            <strong>{formatMoney(summary.avgDealSize)}</strong>
+            <strong className="break-words">
+              {formatCompactMoney(summary.avgDealSize)}
+            </strong>
           </div>
         </div>
       </div>

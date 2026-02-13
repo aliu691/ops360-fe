@@ -5,6 +5,7 @@ import { Plus, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Customer } from "../types/customer-responses";
 import Pagination from "../components/Pagination";
+import { formatMoney } from "../utils/numbersFormatters";
 
 export default function CustomersList() {
   const navigate = useNavigate();
@@ -16,9 +17,6 @@ export default function CustomersList() {
   const limit = 15;
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-
-  const formatMoney = (value?: number | null) =>
-    typeof value === "number" ? `₦ ${value.toLocaleString()}` : "—";
 
   const fetchCustomers = async () => {
     try {

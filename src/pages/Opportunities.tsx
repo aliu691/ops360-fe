@@ -8,6 +8,8 @@ import { StagePill } from "../components/pipeline/StagePill";
 import { UploadPipelineModal } from "../components/pipeline/UploadPiepelineForm";
 import Pagination from "../components/Pagination";
 import { useAuth } from "../hooks/useAuth";
+import { MultiSelect } from "../MultiSelect";
+import PipelineFilter from "../components/pipeline/PipelineFilter";
 
 export default function OpportunitiesPage() {
   const navigate = useNavigate();
@@ -25,31 +27,24 @@ export default function OpportunitiesPage() {
    * ========================= */
   const [showFilters, setShowFilters] = useState(false);
 
-  /* =========================
-   * DRAFT FILTERS (UI ONLY)
-   * ========================= */
-  const [draftQuarter, setDraftQuarter] = useState<string | undefined>();
-  const [draftSalesRepId, setDraftSalesRepId] = useState<string | undefined>();
-  const [draftPreSalesRepId, setDraftPreSalesRepId] = useState<
-    string | undefined
-  >();
-  const [draftStageId, setDraftStageId] = useState<string | undefined>();
-
   const currentYear = String(new Date().getFullYear());
-
-  const [draftYear, setDraftYear] = useState(currentYear);
 
   const [refreshKey, setRefreshKey] = useState(0);
 
   /* =========================
    * APPLIED FILTERS (API)
    * ========================= */
-  const [appliedFilters, setAppliedFilters] = useState({
+  type OpportunityFilters = {
+    year: string;
+    quarter?: string;
+    salesRepId?: string;
+    preSalesRepIds: string[];
+    stageId?: string;
+  };
+
+  const [appliedFilters, setAppliedFilters] = useState<OpportunityFilters>({
     year: currentYear,
-    quarter: undefined as string | undefined,
-    salesRepId: undefined as string | undefined,
-    preSalesRepId: undefined as string | undefined,
-    stageId: undefined as string | undefined,
+    preSalesRepIds: [],
   });
 
   /* =========================
@@ -69,9 +64,6 @@ export default function OpportunitiesPage() {
       .then((res) => setUsers(res.data?.items ?? []))
       .catch(() => setUsers([]));
   }, []);
-
-  const salesReps = users.filter((u) => u.department === "SALES");
-  const preSalesReps = users.filter((u) => u.department === "PRE_SALES");
 
   /* =========================
    * LOAD DEAL STAGES
@@ -109,8 +101,8 @@ export default function OpportunitiesPage() {
               ? Number(appliedFilters.salesRepId)
               : undefined,
 
-          preSalesOwnerIds: appliedFilters.preSalesRepId
-            ? [Number(appliedFilters.preSalesRepId)]
+          preSalesOwnerIds: appliedFilters.preSalesRepIds.length
+            ? appliedFilters.preSalesRepIds.map(Number)
             : undefined,
 
           stageId: appliedFilters.stageId
@@ -132,48 +124,6 @@ export default function OpportunitiesPage() {
   useEffect(() => {
     loadOpportunities();
   }, [appliedFilters, page, refreshKey]);
-
-  const yearOptions = Array.from(new Set([currentYear, "2025"])).sort(
-    (a, b) => Number(b) - Number(a)
-  );
-
-  /* =========================
-   * APPLY / RESET FILTERS
-   * ========================= */
-  const applyFilters = () => {
-    setAppliedFilters({
-      year: draftYear,
-      quarter: draftQuarter,
-      salesRepId: draftSalesRepId,
-      preSalesRepId: draftPreSalesRepId,
-      stageId: draftStageId,
-    });
-
-    setPage(1);
-    setShowFilters(false);
-  };
-
-  const resetFilters = () => {
-    setDraftYear(currentYear);
-    setDraftQuarter(undefined);
-    setDraftPreSalesRepId(undefined);
-    setDraftStageId(undefined);
-
-    if (isAdmin) {
-      setDraftSalesRepId(undefined);
-    }
-
-    setAppliedFilters({
-      year: currentYear,
-      quarter: undefined,
-      salesRepId: undefined,
-      preSalesRepId: undefined,
-      stageId: undefined,
-    });
-
-    setPage(1);
-    setShowFilters(false);
-  };
 
   /* =========================
    * RESET PAGE FROM NAV
@@ -240,81 +190,18 @@ export default function OpportunitiesPage() {
         </div>
       </div>
 
-      {/* FILTER PANEL */}
       {showFilters && (
-        <div className="flex flex-wrap gap-3 p-4 border rounded-xl bg-gray-50">
-          {/* <Select
-            value={draftYear}
-            onChange={(v) => v && setDraftYear(v)}
-            options={["2025"]}
-            placeholder="Year"
-          /> */}
-
-          <Select
-            value={draftYear}
-            onChange={(v) => v && setDraftYear(v)}
-            options={yearOptions}
-            placeholder="Year"
-          />
-
-          <Select
-            value={draftQuarter}
-            onChange={setDraftQuarter}
-            options={["1", "2", "3", "4"]}
-            placeholder="All Quarters"
-            format={(q) => `Q${q}`}
-          />
-
-          {isAdmin && (
-            <Select
-              value={draftSalesRepId}
-              onChange={setDraftSalesRepId}
-              options={salesReps.map((u) => String(u.id))}
-              placeholder="All Sales Reps"
-              format={(id) => {
-                const u = salesReps.find((x) => String(x.id) === id);
-                return u ? `${u.firstName} ${u.lastName}` : id;
-              }}
-            />
-          )}
-
-          <Select
-            value={draftPreSalesRepId}
-            onChange={setDraftPreSalesRepId}
-            options={preSalesReps.map((u) => String(u.id))}
-            placeholder="All Presales Reps"
-            format={(id) => {
-              const u = preSalesReps.find((x) => String(x.id) === id);
-              return u ? `${u.firstName} ${u.lastName}` : id;
-            }}
-          />
-
-          <Select
-            value={draftStageId}
-            onChange={setDraftStageId}
-            options={dealStages.map((s) => String(s.id))}
-            placeholder="All Deal Stages"
-            format={(id) => {
-              const s = dealStages.find((x) => String(x.id) === id);
-              return s ? s.name : id;
-            }}
-          />
-
-          <div className="flex gap-2 ml-auto">
-            <button
-              onClick={resetFilters}
-              className="px-4 py-2 border rounded-lg bg-white text-sm hover:bg-gray-50"
-            >
-              Reset
-            </button>
-            <button
-              onClick={applyFilters}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
+        <PipelineFilter
+          isAdmin={isAdmin}
+          users={users}
+          dealStages={dealStages}
+          value={appliedFilters}
+          onApply={(filters) => {
+            setAppliedFilters(filters);
+            setPage(1); // reset pagination on filter apply
+          }}
+          onClose={() => setShowFilters(false)}
+        />
       )}
 
       {/* TABLE */}
