@@ -1,4 +1,5 @@
 import { StageTotalsItem } from "../../types/pipeline";
+import { formatMoney } from "../../utils/numbersFormatters";
 
 interface Props {
   index: number;
@@ -31,9 +32,6 @@ export default function FunnelStageRow({
           MIN_WIDTH
         )
       : MIN_WIDTH;
-
-  const formatMoney = (value?: number | null) =>
-    typeof value === "number" ? `₦${value.toLocaleString("en-NG")}` : "₦0";
 
   /** -----------------------------
    * Color logic

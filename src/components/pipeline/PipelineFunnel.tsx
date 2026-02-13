@@ -4,11 +4,17 @@ import FunnelStageRow from "./FunnelStageRow";
 export default function PipelineFunnel({
   stageTotals,
   onStageClick,
+  hideClosedWon = false,
 }: {
   stageTotals: Record<string, any>;
   onStageClick?: (stage: { id: number; name: string }) => void;
+  hideClosedWon?: boolean;
 }) {
-  const stages = normalizePipelineStages(stageTotals);
+  let stages = normalizePipelineStages(stageTotals);
+
+  if (hideClosedWon) {
+    stages = stages.filter((stage) => stage.key !== "CLOSE_WON");
+  }
 
   const maxAmount = Math.max(...stages.map((s) => s.amount ?? 0), 1);
 
