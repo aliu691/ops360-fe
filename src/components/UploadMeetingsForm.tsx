@@ -244,7 +244,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
           htmlFor="file-upload"
           className="mt-2 flex flex-col items-center border-2 border-dashed rounded-xl py-10 cursor-pointer bg-gray-50 hover:bg-gray-100"
         >
-          <UploadCloud size={40} className="text-blue-500 mb-3" />
+          <UploadCloud size={30} className="text-blue-500 mb-3" />
           <p className="text-blue-600 font-medium text-sm">Click to upload</p>
           <p className="text-gray-400 text-xs mt-2">Excel (.xlsx)</p>
           <input
@@ -259,6 +259,20 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
             Selected: <span className="font-semibold">{file.name}</span>
           </p>
         )}
+      </div>
+
+      {/* INFO */}
+      <div className="flex items-center gap-3 bg-gray-50 border rounded-lg px-3 py-3 text-sm text-gray-600">
+        <Info size={18} />
+        Need the correct format?{" "}
+        <a
+          href="https://docs.google.com/spreadsheets/d/1hJVXp9ZA8zoUuz9BXFvtR4PS70pdectd0uj3bZmbGao/edit?usp=sharing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 ml-1 underline"
+        >
+          Download Template
+        </a>
       </div>
 
       {/* Actions */}
