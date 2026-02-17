@@ -40,6 +40,10 @@ export const API_ENDPOINTS = {
     return `/upload/pipeline?${query.toString()}`;
   },
 
+  /* =========================
+   * MEETINGS
+   * ========================= */
+
   getMeetings: (
     repName?: string,
     page?: number,
@@ -61,6 +65,8 @@ export const API_ENDPOINTS = {
 
     return `/meetings?${params.toString()}`;
   },
+
+  deleteMeeting: (id: number) => `/meetings/${id}`,
 
   /* =========================
    * KPI
@@ -154,6 +160,7 @@ export const API_ENDPOINTS = {
 
   updatePipelineDeal: (externalDealId: string) => `/pipeline/${externalDealId}`,
   getDealStages: () => `/deal-stages`,
+  deletePipelineDeal: (id: number) => `/pipeline/${id}`,
 
   /* =========================
    * CUSTOMERS
