@@ -17,6 +17,7 @@ import {
   getCurrentWeek,
 } from "../utils/dateUtils";
 import { useAuth } from "../hooks/useAuth";
+import ConfirmDeleteModal from "../components/ConfirmDelete";
 
 /* ---------------------------------------------
    TYPES
@@ -48,6 +49,7 @@ interface KPIWeeklySnapshot {
     missingOutcomeCount?: number;
     missingContactCount?: number;
     roleOnlyCount?: number;
+    missedMeetings?: number;
   };
   meetingFindings?: MeetingFinding[];
 }
@@ -93,14 +95,6 @@ function statusClasses(status?: FindingStatus) {
   };
 }
 
-function statusIcon(status?: FindingStatus) {
-  const s = normalizeStatus(status);
-  if (s === "GOOD")
-    return <CheckCircle2 size={18} className="text-emerald-600" />;
-  if (s === "FAIL") return <XCircle size={18} className="text-rose-600" />;
-  return <AlertTriangle size={18} className="text-amber-600" />;
-}
-
 /* ---------------------------------------------
    COMPONENT
 ----------------------------------------------*/
@@ -123,7 +117,30 @@ export default function Dashboard() {
 
   const salesUsers = users.filter((u) => u.department === "SALES");
 
-  const { actor, isUser, isAdmin } = useAuth();
+  const [deleteMeetingId, setDeleteMeetingId] = useState<number | null>(null);
+  const [deletingMeeting, setDeletingMeeting] = useState(false);
+
+  const { actor, isUser, isAdmin, isSuperAdmin } = useAuth();
+
+  const canDelete = isAdmin || isSuperAdmin;
+
+  const handleDeleteMeeting = async () => {
+    if (!deleteMeetingId) return;
+
+    try {
+      setDeletingMeeting(true);
+
+      await apiClient.delete(API_ENDPOINTS.deleteMeeting(deleteMeetingId));
+
+      // Reload page so KPI recalculates
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete meeting.");
+    } finally {
+      setDeletingMeeting(false);
+    }
+  };
 
   useEffect(() => {
     if (actor?.type === "USER" && actor.firstName) {
@@ -242,7 +259,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mt-6 mb-10">
         {/* Left */}
         <div>
-          <h1 className="text-3xl font-extrabold">Meetings KPI Dashboard</h1>
+          <h1 className="text-3xl font-extrabold">Weekly Meetings Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">
             Weekly snapshot — shows findings and quality metrics for the
             selected rep.
@@ -252,7 +269,7 @@ export default function Dashboard() {
         {/* Right Filters */}
         <div className="flex items-center gap-4">
           {/* Rep Select */}
-          {isAdmin && (
+          {canDelete && (
             <div className="relative">
               <select
                 value={selectedRep}
@@ -310,14 +327,14 @@ export default function Dashboard() {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Total meetings */}
+        {/* TOTAL MEETINGS */}
         <div className="bg-white rounded-xl shadow p-6">
           <p className="text-sm text-gray-500 font-medium">TOTAL MEETINGS</p>
 
           <div className="flex items-center justify-between mt-3">
             <div>
               <p className="text-4xl font-bold">{kpi?.totalMeetings ?? 0}</p>
-              <p className="text-xs text-gray-400 mt-1">This week</p>
+              <p className="text-xs text-gray-400 mt-1">Target: 5 meetings</p>
             </div>
 
             <div className="inline-block rounded-full bg-emerald-50 px-4 py-2 border border-emerald-100 text-center">
@@ -327,17 +344,25 @@ export default function Dashboard() {
               <div className="text-xl font-bold">{kpi?.score ?? 0}</div>
             </div>
           </div>
+
+          {/* Activity Deficit (Backend Driven) */}
+          {kpi?.counts?.missedMeetings && kpi.counts.missedMeetings > 0 && (
+            <p className="mt-3 text-xs text-rose-600 font-medium">
+              {kpi.counts.missedMeetings} meeting(s) below required threshold.
+            </p>
+          )}
         </div>
 
-        {/* WEEKLY SCORE */}
+        {/* WEEKLY SCORE CARD */}
         <div
           className={`bg-white rounded-xl shadow p-6 border ${scoreCardBorder}`}
         >
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm text-gray-500 font-medium">
-                WEEKLY SCORE CARD
+                WEEKLY PERFORMANCE SCORE
               </p>
+
               <div className="mt-2 flex items-end gap-4">
                 <p className="text-4xl font-extrabold">{kpi?.score ?? 0}</p>
                 <p className="text-sm text-gray-500 mt-1">/ 100</p>
@@ -353,7 +378,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Progress */}
+          {/* Progress Bar */}
           <div className="mt-4">
             <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
               <div
@@ -367,37 +392,29 @@ export default function Dashboard() {
                 style={{ width: `${kpi?.score ?? 0}%` }}
               />
             </div>
-            <p className="mt-3 text-xs text-gray-500">Target is &gt; 70.</p>
+
+            <p className="mt-3 text-xs text-gray-500">
+              Target performance threshold: 70+
+            </p>
           </div>
         </div>
 
-        {/* WEEKLY FINDINGS */}
+        {/* EXECUTIVE FINDINGS CARD */}
         <div className="bg-white rounded-xl shadow p-6">
-          <p className="text-sm text-gray-500 font-medium">WEEKLY FINDINGS</p>
+          <p className="text-sm text-gray-500 font-medium">EXECUTIVE SUMMARY</p>
 
-          <div className="flex items-start gap-3 mt-4">
-            <div
-              className={`p-2 rounded-md border ${
-                statusClasses(kpi?.status).border
-              } ${statusClasses(kpi?.status).bg}`}
-            >
-              {statusIcon(kpi?.status)}
-            </div>
-
-            <div>
-              <p className="font-semibold text-sm">
-                {normalizeStatus(kpi?.status) === "GOOD"
-                  ? "Good Activity"
-                  : normalizeStatus(kpi?.status) === "FAIL"
-                  ? "Poor Activity"
-                  : "Fair Activity"}
+          <div className="mt-4 space-y-3">
+            {kpi?.weeklyFindings?.length ? (
+              <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
+                {kpi.weeklyFindings.map((finding, idx) => (
+                  <li key={idx}>{finding.message}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-emerald-600 font-medium">
+                No risk signals detected. Activity within expected range.
               </p>
-
-              <p className="text-sm text-gray-500 mt-1">
-                {kpi?.weeklyFindings?.[0]?.message ??
-                  "No issues detected this week."}
-              </p>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -460,22 +477,33 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() =>
-                        setOpenMeetingId(isOpen ? null : mf.meetingId)
-                      }
-                      className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2 transition"
-                    >
-                      {isOpen ? (
-                        <>
-                          Close <ChevronDown size={16} />
-                        </>
-                      ) : (
-                        <>
-                          View <ChevronRight size={16} />
-                        </>
+                    <div className="flex items-center gap-4">
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeleteMeetingId(mf.meetingId)}
+                          className="text-sm text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Delete
+                        </button>
                       )}
-                    </button>
+
+                      <button
+                        onClick={() =>
+                          setOpenMeetingId(isOpen ? null : mf.meetingId)
+                        }
+                        className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2 transition"
+                      >
+                        {isOpen ? (
+                          <>
+                            Close <ChevronDown size={16} />
+                          </>
+                        ) : (
+                          <>
+                            View <ChevronRight size={16} />
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Content */}
@@ -533,6 +561,22 @@ export default function Dashboard() {
             })}
         </div>
       </div>
+      {deleteMeetingId && (
+        <ConfirmDeleteModal
+          open={!!deleteMeetingId}
+          title="Delete Meeting"
+          description={
+            <>
+              This meeting will be permanently deleted.
+              <br />
+              The KPI score will be recalculated.
+            </>
+          }
+          loading={deletingMeeting}
+          onCancel={() => setDeleteMeetingId(null)}
+          onConfirm={handleDeleteMeeting}
+        />
+      )}
     </div>
   );
 }
