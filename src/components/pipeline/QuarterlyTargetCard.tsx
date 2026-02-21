@@ -93,16 +93,15 @@ export default function QuarterlyTargetCard({ summary, quarter }: Props) {
         </div>
 
         <div className="bg-blue-50 rounded-lg p-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-blue-700 font-medium shrink-0">
+          <div className="flex flex-wrap items-start sm:items-center gap-1 sm:gap-3">
+            <span className="text-sm text-blue-700 font-medium">
               Closed Won
             </span>
 
-            <span className="text-base sm:text-lg font-bold text-blue-600 text-right truncate">
+            <span className="text-base sm:text-lg font-bold text-blue-600 sm:ml-auto">
               {formatCompactMoney(achieved)}
             </span>
           </div>
-
           <div className="w-full bg-blue-200 h-1.5 rounded-full mt-2">
             <div
               className="bg-blue-600 h-1.5 rounded-full"
