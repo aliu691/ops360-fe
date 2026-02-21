@@ -158,7 +158,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
      UI
   ===================================================== */
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-h-[90vh] overflow-y-scroll">
       {/* ADMIN ONLY */}
       {isAdmin && (
         <div>
@@ -240,13 +240,19 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         <label className="text-sm font-semibold text-gray-700">
           Report File
         </label>
+
         <label
           htmlFor="file-upload"
-          className="mt-2 flex flex-col items-center border-2 border-dashed rounded-xl py-10 cursor-pointer bg-gray-50 hover:bg-gray-100"
+          className="mt-2 flex flex-col items-center border-2 border-dashed rounded-xl
+               py-5 sm:py-6
+               cursor-pointer bg-gray-50 hover:bg-gray-100"
         >
-          <UploadCloud size={30} className="text-blue-500 mb-3" />
+          <UploadCloud size={24} className="text-blue-500 mb-2" />
+
           <p className="text-blue-600 font-medium text-sm">Click to upload</p>
-          <p className="text-gray-400 text-xs mt-2">Excel (.xlsx)</p>
+
+          <p className="text-gray-400 text-xs mt-1">Excel (.xlsx)</p>
+
           <input
             id="file-upload"
             type="file"
@@ -254,6 +260,7 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
             onChange={handleFile}
           />
         </label>
+
         {file && (
           <p className="text-sm text-gray-600 mt-2">
             Selected: <span className="font-semibold">{file.name}</span>
