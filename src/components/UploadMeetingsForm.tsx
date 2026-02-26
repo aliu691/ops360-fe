@@ -244,10 +244,10 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
         <label
           htmlFor="file-upload"
           className="mt-2 flex flex-col items-center border-2 border-dashed rounded-xl
-               py-5 sm:py-6
+                sm:py-1
                cursor-pointer bg-gray-50 hover:bg-gray-100"
         >
-          <UploadCloud size={24} className="text-blue-500 mb-2" />
+          <UploadCloud size={18} className="text-blue-500 mb-2" />
 
           <p className="text-blue-600 font-medium text-sm">Click to upload</p>
 
