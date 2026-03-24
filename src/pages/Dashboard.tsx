@@ -30,12 +30,19 @@ interface WeeklyFinding {
   message: string;
 }
 
+interface PreSalesUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
 interface MeetingFinding {
   meetingId: number;
   customerName: string;
   primaryContact: string;
   meetingPurpose: string;
   meetingOutcome: string;
+  preSalesOwners: PreSalesUser[];
   status: FindingStatus;
   message: string;
 }
@@ -186,7 +193,7 @@ export default function Dashboard() {
 
         const currentWeek = getCurrentWeek();
         const match = items.find(
-          (w: { week: number }) => w.week === currentWeek
+          (w: { week: number }) => w.week === currentWeek,
         );
 
         if (match) {
@@ -244,8 +251,8 @@ export default function Dashboard() {
     normalizeStatus(kpi?.status) === "GOOD"
       ? "border-emerald-200"
       : normalizeStatus(kpi?.status) === "FAIL"
-      ? "border-rose-200"
-      : "border-amber-200";
+        ? "border-rose-200"
+        : "border-amber-200";
 
   /* ---------------------------------------------------
      RENDER
@@ -304,7 +311,7 @@ export default function Dashboard() {
               value={selectedWeek ?? ""}
               onChange={(e) =>
                 setSelectedWeek(
-                  e.target.value ? Number(e.target.value) : undefined
+                  e.target.value ? Number(e.target.value) : undefined,
                 )
               }
               className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
@@ -386,8 +393,8 @@ export default function Dashboard() {
                   (kpi?.score ?? 0) >= 70
                     ? "bg-emerald-500"
                     : (kpi?.score ?? 0) >= 45
-                    ? "bg-amber-500"
-                    : "bg-rose-500"
+                      ? "bg-amber-500"
+                      : "bg-rose-500"
                 }`}
                 style={{ width: `${kpi?.score ?? 0}%` }}
               />
@@ -448,6 +455,8 @@ export default function Dashboard() {
               const isOpen = openMeetingId === mf.meetingId;
               const sc = statusClasses(mf.status);
 
+              const preSales = mf.preSalesOwners ?? [];
+
               return (
                 <div
                   key={mf.meetingId}
@@ -463,8 +472,8 @@ export default function Dashboard() {
                           {normalizeStatus(mf.status) === "GOOD"
                             ? "✓"
                             : normalizeStatus(mf.status) === "FAIL"
-                            ? "✕"
-                            : "!"}
+                              ? "✕"
+                              : "!"}
                         </div>
                       </div>
 
@@ -509,7 +518,15 @@ export default function Dashboard() {
                   {/* Content */}
                   {isOpen && (
                     <div className="px-6 py-6 space-y-6 bg-gray-50">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* ✅ 3-COLUMN GRID */}
+                      <div
+                        className={`grid gap-8 ${
+                          preSales.length > 0
+                            ? "grid-cols-1 md:grid-cols-3"
+                            : "grid-cols-1 md:grid-cols-2"
+                        }`}
+                      >
+                        {/* Primary Contact */}
                         <div>
                           <p className="text-xs font-semibold text-gray-500">
                             PRIMARY CONTACT
@@ -519,6 +536,7 @@ export default function Dashboard() {
                           </p>
                         </div>
 
+                        {/* Purpose */}
                         <div>
                           <p className="text-xs font-semibold text-gray-500">
                             MEETING PURPOSE
@@ -527,8 +545,25 @@ export default function Dashboard() {
                             {mf.meetingPurpose ?? "—"}
                           </p>
                         </div>
+
+                        {/* ✅ Pre-Sales (only if exists) */}
+                        {preSales.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500">
+                              PRE-SALES ENGINEER
+                            </p>
+                            <p className="mt-2 text-sm text-gray-800">
+                              {preSales
+                                .map((u: any) =>
+                                  `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+                                )
+                                .join(", ")}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
+                      {/* Outcome */}
                       <div className="bg-white border rounded-lg p-4">
                         <p className="text-xs font-semibold text-gray-500">
                           MEETING OUTCOME
@@ -538,13 +573,14 @@ export default function Dashboard() {
                         </p>
                       </div>
 
+                      {/* KPI Finding */}
                       <div
                         className={`border rounded-lg p-4 ${
                           normalizeStatus(mf.status) === "GOOD"
                             ? "bg-emerald-50 border-emerald-100 text-emerald-700"
                             : normalizeStatus(mf.status) === "FAIL"
-                            ? "bg-rose-50 border-rose-100 text-rose-700"
-                            : "bg-amber-50 border-amber-100 text-amber-700"
+                              ? "bg-rose-50 border-rose-100 text-rose-700"
+                              : "bg-amber-50 border-amber-100 text-amber-700"
                         }`}
                       >
                         <p className="text-xs font-semibold">
