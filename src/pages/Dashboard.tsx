@@ -3,13 +3,7 @@ import { apiClient } from "../config/apiClient";
 import { API_ENDPOINTS, KpiFilters } from "../config/api";
 import { useUsers } from "../hooks/useUsers";
 
-import {
-  ChevronRight,
-  ChevronDown,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 
 import {
   formatMonthLabel,
@@ -23,7 +17,7 @@ import ConfirmDeleteModal from "../components/ConfirmDelete";
    TYPES
 ----------------------------------------------*/
 
-type FindingStatus = "GOOD" | "FAIR" | "FAIL" | string;
+type FindingStatus = "GOOD" | "FAIR" | "FAIL" | "EXCELLENT" | string;
 
 interface WeeklyFinding {
   status: FindingStatus;
@@ -52,12 +46,16 @@ interface KPIWeeklySnapshot {
   score: number;
   status: FindingStatus;
   weeklyFindings?: WeeklyFinding[];
-  counts?: {
-    missingOutcomeCount?: number;
-    missingContactCount?: number;
-    roleOnlyCount?: number;
-    missedMeetings?: number;
+
+  counts: {
+    // ✅ remove optional
+    missingOutcomeCount: number;
+    missingContactCount: number;
+    roleOnlyCount: number;
+    missedMeetings: number;
+    extraMeetings: number;
   };
+
   meetingFindings?: MeetingFinding[];
 }
 
@@ -75,26 +73,39 @@ interface WeekOption {
 function normalizeStatus(s?: string) {
   if (!s) return "FAIR";
   const up = s.toUpperCase();
+
+  if (["EXCELLENT"].includes(up)) return "EXCELLENT";
   if (["FAIL", "POOR"].includes(up)) return "FAIL";
   if (["GOOD"].includes(up)) return "GOOD";
   if (["FAIR"].includes(up)) return "FAIR";
+
   return up;
 }
 
 function statusClasses(status?: FindingStatus) {
   const s = normalizeStatus(status);
+
+  if (s === "EXCELLENT")
+    return {
+      text: "text-violet-700",
+      bg: "bg-violet-50",
+      border: "border-violet-200",
+    };
+
   if (s === "GOOD")
     return {
       text: "text-emerald-700",
       bg: "bg-emerald-50",
       border: "border-emerald-200",
     };
+
   if (s === "FAIL")
     return {
       text: "text-rose-700",
       bg: "bg-rose-50",
       border: "border-rose-200",
     };
+
   return {
     text: "text-amber-700",
     bg: "bg-amber-50",
@@ -248,12 +259,22 @@ export default function Dashboard() {
   }, [actor, isUser, isAdmin, effectiveRepName, selectedMonth, selectedWeek]);
 
   const scoreCardBorder =
-    normalizeStatus(kpi?.status) === "GOOD"
-      ? "border-emerald-200"
-      : normalizeStatus(kpi?.status) === "FAIL"
-        ? "border-rose-200"
-        : "border-amber-200";
+    normalizeStatus(kpi?.status) === "EXCELLENT"
+      ? "border-violet-200"
+      : normalizeStatus(kpi?.status) === "GOOD"
+        ? "border-emerald-200"
+        : normalizeStatus(kpi?.status) === "FAIL"
+          ? "border-rose-200"
+          : "border-amber-200";
 
+  const safeScore = Math.min(kpi?.score ?? 0, 100);
+
+  const extraMeetings = Math.max(
+    0,
+    (kpi?.totalMeetings ?? 0) - 5, // or use your config value if available
+  );
+
+  const isExcellent = normalizeStatus(kpi?.status) === "EXCELLENT";
   /* ---------------------------------------------------
      RENDER
   ---------------------------------------------------*/
@@ -352,11 +373,18 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Activity Deficit (Backend Driven) */}
-          {kpi?.counts?.missedMeetings && kpi.counts.missedMeetings > 0 && (
+          {/* BELOW TARGET */}
+          {kpi && kpi.counts.missedMeetings > 0 && (
             <p className="mt-3 text-xs text-rose-600 font-medium">
               {kpi.counts.missedMeetings} meeting(s) below required threshold.
             </p>
+          )}
+
+          {/* EXCEEDED TARGET */}
+          {kpi && kpi.counts.extraMeetings > 0 && (
+            <div className="mt-3 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-xs font-semibold">
+              🎉 +{kpi.counts.extraMeetings} above target
+            </div>
           )}
         </div>
 
@@ -390,13 +418,15 @@ export default function Dashboard() {
             <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
               <div
                 className={`h-3 rounded-full transition-all duration-700 ${
-                  (kpi?.score ?? 0) >= 70
-                    ? "bg-emerald-500"
-                    : (kpi?.score ?? 0) >= 45
-                      ? "bg-amber-500"
-                      : "bg-rose-500"
+                  normalizeStatus(kpi?.status) === "EXCELLENT"
+                    ? "bg-violet-500"
+                    : (kpi?.score ?? 0) >= 70
+                      ? "bg-emerald-500"
+                      : (kpi?.score ?? 0) >= 45
+                        ? "bg-amber-500"
+                        : "bg-rose-500"
                 }`}
-                style={{ width: `${kpi?.score ?? 0}%` }}
+                style={{ width: `${safeScore}%` }}
               />
             </div>
 
