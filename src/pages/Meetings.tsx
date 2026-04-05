@@ -44,9 +44,11 @@ export default function Meetings() {
   const salesUsers = users.filter((u) => u.department === "SALES");
 
   const { actor, isUser, isAdmin } = useAuth();
+  const selectedRep = salesUsers.find((u) => String(u.id) === repFilter);
 
   // 🔐 USERS NEVER SEND repName — backend infers from JWT
-  const effectiveRepFilter = isAdmin && repFilter ? repFilter : undefined;
+  const effectiveRepFilter =
+    isAdmin && selectedRep ? selectedRep.firstName : undefined;
 
   /* =========================
      LOAD MONTHS
@@ -134,8 +136,6 @@ export default function Meetings() {
     setOpenPanel(true);
   };
 
-  const userFirstName = actor?.type === "USER" ? actor.firstName : undefined;
-
   /* =========================
      UI
   ========================= */
@@ -172,8 +172,12 @@ export default function Meetings() {
                 setPage(1);
                 setRepFilter(v ?? "");
               }}
-              options={salesUsers.map((u) => u.firstName)}
+              options={salesUsers.map((u) => String(u.id))}
               placeholder={usersLoading ? "Loading reps..." : "All Reps"}
+              format={(value) => {
+                const user = salesUsers.find((u) => String(u.id) === value);
+                return user ? `${user.firstName} ${user.lastName}` : value;
+              }}
             />
           )}
 

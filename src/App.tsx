@@ -27,6 +27,7 @@ import CreateCustomerPage from "./pages/CreateCustomerPage";
 
 import AuditLogs from "./pages/AuditLogs";
 import AuditLogDetails from "./pages/AuditLogDetails";
+import Reports from "./pages/Reports";
 
 function App() {
   return (
@@ -45,9 +46,6 @@ function App() {
             <Route path="/kpi" element={<KpiDashboard />} />
             <Route path="/meetings" element={<Meetings />} />
 
-            <Route path="/users" element={<UsersList />} />
-            <Route path="/users/:id" element={<UserDetails />} />
-
             <Route path="/pipeline" element={<SalesPipelinePage />} />
             <Route path="/opportunities" element={<OpportunitiesPage />} />
             <Route
@@ -62,6 +60,17 @@ function App() {
             <Route path="/customers" element={<CustomersList />} />
             <Route path="/customers/new" element={<CreateCustomerPage />} />
             <Route path="/customers/:id" element={<CustomerDetails />} />
+          </Route>
+        </Route>
+
+        {/* ================= ADMIN ONLY ================= */}
+        <Route
+          element={<ProtectedRoute allowedRoles={["ADMIN", "SUPER_ADMIN"]} />}
+        >
+          <Route element={<Layout />}>
+            <Route path="/users" element={<UsersList />} />
+            <Route path="/users/:id" element={<UserDetails />} />
+            <Route path="/reports" element={<Reports />} />
           </Route>
         </Route>
 
