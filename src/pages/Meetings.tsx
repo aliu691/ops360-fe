@@ -288,10 +288,11 @@ export default function Meetings() {
       />
 
       {/* UPLOAD (USER ONLY) */}
-      {isUser && actor && (
+
+      {isUser && actor && actor.type === "USER" && (
         <Modal open={uploadOpen} onClose={() => setUploadOpen(false)}>
           <UploadMeetingsForm
-            repName={userFirstName}
+            repName={actor.firstName}
             onSuccess={() => {
               setUploadOpen(false);
               loadMeetings();
