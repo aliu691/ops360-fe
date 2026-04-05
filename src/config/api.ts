@@ -51,7 +51,7 @@ export const API_ENDPOINTS = {
     filters?: {
       month?: string;
       week?: number;
-    }
+    },
   ) => {
     const params = new URLSearchParams();
 
@@ -213,6 +213,16 @@ export const API_ENDPOINTS = {
   },
 
   getAuditLogById: (id: number | string) => `/audit-logs/${id}`,
+
+  /* =========================
+   * REPORTING
+   * ========================= */
+
+  getMonthlyMeetingsReport: (repName: string, month: string) =>
+    `/reporting/meetings/monthly/${repName}?month=${month}`,
+
+  exportMonthlyMeetingsReport: (repName: string, month: string) =>
+    `/reporting/meetings/monthly/export/${repName}?month=${month}`,
 };
 
 export default BASE_URL;

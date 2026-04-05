@@ -131,7 +131,7 @@ export default function Dashboard() {
 
   const { users, loading: usersLoading } = useUsers();
 
-  const [selectedRep, setSelectedRep] = useState<string | undefined>();
+  const [selectedRepId, setSelectedRepId] = useState<string | undefined>();
 
   const salesUsers = users.filter((u) => u.department === "SALES");
 
@@ -161,16 +161,20 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (actor?.type === "USER" && actor.firstName) {
-      setSelectedRep(actor.firstName);
+    if (actor?.type === "USER") {
+      setSelectedRepId(String(actor.id));
     }
   }, [actor]);
 
   useEffect(() => {
-    if (actor?.type === "ADMIN" && !selectedRep && salesUsers.length > 0) {
-      setSelectedRep(salesUsers[0].firstName);
+    if (
+      actor?.type === "ADMIN" &&
+      !selectedRepId &&
+      salesUsers.length > 0
+    ) {
+      setSelectedRepId(String(salesUsers[0].id));
     }
-  }, [actor, salesUsers]);
+  }, [actor, salesUsers, selectedRepId]);
 
   useEffect(() => {
     apiClient
@@ -216,8 +220,11 @@ export default function Dashboard() {
       .catch(() => setWeeks([]));
   }, [selectedMonth]);
 
+  const selectedRepUser = salesUsers.find(
+    (user) => String(user.id) === selectedRepId,
+  );
   const effectiveRepName =
-    actor?.type === "USER" ? actor.firstName : selectedRep;
+    actor?.type === "USER" ? actor.firstName : selectedRepUser?.firstName;
 
   /* ---------------------------------------------------
    FETCH KPI DATA
@@ -300,14 +307,14 @@ export default function Dashboard() {
           {canDelete && (
             <div className="relative">
               <select
-                value={selectedRep}
-                onChange={(e) => setSelectedRep(e.target.value)}
+                value={selectedRepId ?? ""}
+                onChange={(e) => setSelectedRepId(e.target.value)}
                 disabled={usersLoading}
                 className="appearance-none px-4 py-2 pr-10 bg-white border rounded-lg text-sm shadow-sm"
               >
                 {salesUsers.map((u) => (
-                  <option key={u.id} value={u.firstName}>
-                    {u.firstName}
+                  <option key={u.id} value={String(u.id)}>
+                    {u.firstName} {u.lastName}
                   </option>
                 ))}
               </select>

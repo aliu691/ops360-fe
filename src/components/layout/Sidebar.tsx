@@ -2,7 +2,6 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   ListOrdered,
   LayoutGrid,
-  Settings,
   Users,
   User,
   Shield,
@@ -10,6 +9,7 @@ import {
   FunnelIcon,
   CircleDollarSignIcon,
   Keyboard,
+  ChartNoAxesColumnIncreasing,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -59,9 +59,9 @@ export default function Sidebar() {
             path: "/users",
           },
           {
-            name: "Settings",
-            icon: Settings,
-            path: "/settings",
+            name: "Reports",
+            icon: ChartNoAxesColumnIncreasing,
+            path: "/reports",
           },
         ]
       : []),

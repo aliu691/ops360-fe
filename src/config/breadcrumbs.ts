@@ -8,6 +8,4 @@ export const BREADCRUMBS: Record<string, { label: string; path?: string }> = {
 
   // ❌ REMOVE THIS — dynamic route
   // "/users/:id": { label: "User Details" },
-
-  "/settings": { label: "Settings", path: "/settings" },
 };

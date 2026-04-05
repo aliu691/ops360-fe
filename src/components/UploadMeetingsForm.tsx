@@ -24,8 +24,7 @@ interface WeekOption {
 export default function UploadMeetingsForm({ onSuccess }: any) {
   const { actor, isAdmin, isUser } = useAuth();
 
-  const [rep, setRep] = useState<string>(""); // display only
-  const [repId, setRepId] = useState<number | null>(null); // ✅ source of truth
+  const [repId, setRepId] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
   const [months, setMonths] = useState<string[]>([]);
@@ -49,18 +48,15 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
   useEffect(() => {
     // USER → always self
     if (isUser && actor?.type === "USER") {
-      setRep(actor.firstName);
       setRepId(actor.id);
       return;
     }
 
     // ADMIN → default to first sales rep
-    if (isAdmin && salesUsers.length > 0) {
-      const first = salesUsers[0];
-      setRep(first.firstName);
-      setRepId(first.id);
+    if (isAdmin && !repId && salesUsers.length > 0) {
+      setRepId(salesUsers[0].id);
     }
-  }, [actor, isAdmin, isUser, salesUsers]);
+  }, [actor, isAdmin, isUser, repId, salesUsers]);
 
   /* =====================================================
      LOAD CALENDAR MONTHS
@@ -145,7 +141,6 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
   };
 
   console.log({
-    rep,
     repId,
     selectedMonth,
     selectedWeek,
@@ -166,23 +161,17 @@ export default function UploadMeetingsForm({ onSuccess }: any) {
             Representative
           </label>
           <select
-            value={rep}
+            value={repId ?? ""}
             disabled={usersLoading}
             onChange={(e) => {
-              const user = salesUsers.find(
-                (u) => u.firstName === e.target.value
-              );
-              if (!user) return;
-
-              setRep(user.firstName);
-              setRepId(user.id);
+              setRepId(e.target.value ? Number(e.target.value) : null);
             }}
             className="mt-2 w-full border rounded-lg px-3 py-2 bg-white shadow-sm text-sm"
           >
             <option value="">Select a representative...</option>
             {salesUsers.map((u) => (
-              <option key={u.id} value={u.firstName}>
-                {u.firstName}
+              <option key={u.id} value={u.id}>
+                {u.firstName} {u.lastName}
               </option>
             ))}
           </select>
