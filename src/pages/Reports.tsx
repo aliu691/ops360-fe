@@ -40,7 +40,7 @@ interface MonthlyReport {
   };
 
   analytics: {
-    mostVisitedClient: string | null;
+    mostVisitedClients: string[];
     mostVisits: number;
     uniqueClients: number;
     clientBreakdown: {
@@ -192,6 +192,8 @@ export default function Reports() {
       setExporting(false); // ✅ STOP LOADING
     }
   };
+  const meetingRate = report?.performance.meetingAchievementRate ?? 0;
+  const presalesRate = report?.performance.presalesAchievementRate ?? 0;
 
   /* ---------------------------------------------------
    FETCH Report DATA
@@ -309,9 +311,11 @@ export default function Reports() {
 
           <div className="mt-2 w-full bg-gray-100 rounded-full h-2">
             <div
-              className="bg-blue-500 h-2 rounded-full"
+              className={`h-2 rounded-full ${
+                meetingRate > 100 ? "bg-purple-500" : "bg-blue-500"
+              }`}
               style={{
-                width: `${report?.performance.meetingAchievementRate ?? 0}%`,
+                width: `${Math.min(meetingRate, 100)}%`,
               }}
             />
           </div>
@@ -350,9 +354,11 @@ export default function Reports() {
 
           <div className="mt-2 w-full bg-gray-100 rounded-full h-2">
             <div
-              className="bg-emerald-500 h-2 rounded-full"
+              className={`h-2 rounded-full ${
+                presalesRate > 100 ? "bg-purple-500" : "bg-emerald-500"
+              }`}
               style={{
-                width: `${report?.performance.presalesAchievementRate ?? 0}%`,
+                width: `${Math.min(presalesRate, 100)}%`,
               }}
             />
           </div>
@@ -369,12 +375,24 @@ export default function Reports() {
           </p>
 
           <div className="flex justify-between items-center mt-auto">
-            <p className="font-semibold">
-              {report?.analytics.mostVisitedClient ?? "—"}
-            </p>
+            <div>
+              {/* PRIMARY CLIENT */}
+              <p className="font-semibold text-lg">
+                {(report?.analytics as any)?.mostVisitedClients?.[0] ?? "—"}
+              </p>
 
-            {report?.analytics.mostVisits ? (
-              <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full">
+              {/* SECONDARY COUNT */}
+              {(report?.analytics as any)?.mostVisitedClients?.length > 1 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  +{(report?.analytics as any).mostVisitedClients.length - 1}{" "}
+                  more
+                </p>
+              )}
+            </div>
+
+            {/* COUNT BADGE */}
+            {report?.analytics?.mostVisits ? (
+              <span className="bg-emerald-100 text-emerald-700 text-xs px-3 py-1 rounded-full font-semibold">
                 {report.analytics.mostVisits} Meetings
               </span>
             ) : null}
