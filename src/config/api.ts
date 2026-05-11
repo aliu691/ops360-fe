@@ -223,6 +223,13 @@ export const API_ENDPOINTS = {
 
   exportMonthlyMeetingsReport: (repName: string, month: string) =>
     `/reporting/meetings/monthly/export/${repName}?month=${month}`,
+
+  /* =========================
+   * COMMENTS
+   * ========================= */
+
+  getCommentsByOpportunity: (id: number) => `/pipeline/${id}/comments`,
+  createComment: (id: number) => `/pipeline/${id}/comments`,
 };
 
 export default BASE_URL;
