@@ -1,5 +1,6 @@
 import { Opportunity } from "../../types/pipeline";
 import { OwnerSection } from "./OpportunityDetailsDealOwner";
+import { CommentsSection } from "./OpportunityComments";
 
 export function MainGrid({ deal }: { deal: Opportunity }) {
   const salesOwners = deal.salesOwner ? [deal.salesOwner] : [];
@@ -14,6 +15,7 @@ export function MainGrid({ deal }: { deal: Opportunity }) {
       <div className="col-span-12 lg:col-span-8 space-y-6">
         <DealInfo deal={deal} />
         <CompanyInfo deal={deal} />
+        <CommentsSection dealId={deal.id} />
       </div>
 
       {/* RIGHT */}
